@@ -324,64 +324,88 @@ body{font-family:var(--f);background:var(--white);color:var(--ink);font-size:13p
 .tdot.err{background:#F58A8A}
 .hidden{display:none!important}
 
-/* ── STAGE SYSTEM ─────────────────────────────────────── */
-.stage-bar{display:flex;gap:4px;padding:10px 15px;border-bottom:1px solid var(--ink-10);background:var(--ink-05);flex-shrink:0}
-.stage-btn{flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;font-family:var(--f);border:1.5px solid var(--ink-10);background:var(--white);color:var(--ink-30);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:4px;letter-spacing:.02em}
-.stage-btn.done{border-color:var(--pass-ring);background:var(--pass-bg);color:var(--pass)}
-.stage-btn.active{border-color:var(--blue);background:var(--blue);color:#fff;box-shadow:var(--sh-blue)}
-.stage-btn.clickable:not(.active):not(.done){border-color:var(--ink-30);color:var(--ink-80);cursor:pointer}
-.stage-btn.clickable:not(.active):not(.done):hover{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
 
-/* Interview CTA banner */
-.ivw-cta{background:var(--purple-bg);border:1.5px solid var(--purple-ring);border-radius:12px;padding:14px;text-align:center}
-.ivw-cta-title{font-size:13px;font-weight:700;color:var(--purple);margin-bottom:4px}
-.ivw-cta-sub{font-size:11px;font-weight:500;color:var(--ink-50);margin-bottom:12px;line-height:1.5}
-.btn-start-ivw{height:38px;padding:0 20px;border-radius:9px;background:var(--purple);color:#fff;font-size:12px;font-weight:700;font-family:var(--f);border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
-.btn-start-ivw:hover{background:#5a3490;transform:translateY(-1px)}
+/* ── STAGE TABS ──────────────────────────────────────────── */
+.tab-bar{display:flex;border-bottom:1px solid var(--ink-10);background:var(--white);flex-shrink:0}
+.tab-btn{flex:1;height:40px;border:none;background:transparent;font-size:11px;font-weight:600;font-family:var(--f);color:var(--ink-30);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.tab-btn:hover{color:var(--ink-50)}
+.tab-btn.on{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-btn.done{color:var(--pass)}
+.tab-btn .tab-dot{width:6px;height:6px;border-radius:50%;background:var(--pass);display:none}
+.tab-btn.done .tab-dot{display:block}
 
-/* ── INTERVIEW NOTES ──────────────────────────────────── */
-.ivw-notes-wrap{padding:13px;display:flex;flex-direction:column;gap:10px}
-.ivw-notes-label{font-size:11px;font-weight:600;color:var(--ink-50);line-height:1.5}
-.ivw-notes-ta{width:100%;min-height:160px;background:var(--ink-05);border:1.5px solid var(--ink-10);border-radius:10px;color:var(--ink);font-size:13px;font-weight:400;font-family:var(--f);padding:12px 14px;outline:none;resize:vertical;line-height:1.7;transition:all .15s}
+/* Tab panels */
+.tab-panel{display:none;flex:1;overflow-y:auto;padding:13px 15px;flex-direction:column;gap:9px}
+.tab-panel.on{display:flex}
+
+/* Interview notes */
+.ivw-notes-ta{width:100%;min-height:180px;background:var(--ink-05);border:1.5px solid var(--ink-10);border-radius:10px;color:var(--ink);font-size:13px;font-weight:400;font-family:var(--f);padding:12px 14px;outline:none;resize:vertical;line-height:1.7;transition:all .15s}
 .ivw-notes-ta:focus{border-color:var(--purple);background:var(--white);box-shadow:0 0 0 3px var(--purple-bg)}
 .ivw-notes-ta::placeholder{color:var(--ink-30);font-size:12px}
 .btn-analyze-ivw{width:100%;height:42px;border-radius:10px;background:var(--purple);color:#fff;font-size:13px;font-weight:700;font-family:var(--f);border:none;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-analyze-ivw:hover{background:#5a3490;transform:translateY(-1px)}
 .btn-analyze-ivw:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.ivw-hint{font-size:11px;font-weight:500;color:var(--ink-50);line-height:1.6;background:var(--purple-bg);border:1px solid var(--purple-ring);border-radius:9px;padding:11px 13px}
+.ivw-qs-ref{background:var(--ink-05);border:1px solid var(--ink-10);border-radius:9px;padding:11px 13px}
+.ivw-qs-ref-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:8px}
+.ivw-qs-ref-item{font-size:11px;font-weight:500;color:var(--ink-80);padding:5px 0 5px 16px;position:relative;line-height:1.45;border-bottom:1px solid var(--ink-10)}
+.ivw-qs-ref-item:last-child{border-bottom:none}
+.ivw-qs-ref-item::before{content:'';position:absolute;left:5px;top:11px;width:4px;height:4px;border-radius:50%;background:var(--purple)}
 
-/* Analysis result */
-.ivw-result{display:flex;flex-direction:column;gap:10px;padding:13px}
-
+/* Verdict */
 .verdict-card{border-radius:12px;padding:14px;border:2px solid}
 .verdict-card.hire{background:var(--pass-bg);border-color:var(--pass-ring)}
 .verdict-card.consider{background:var(--warn-bg);border-color:var(--warn-ring)}
 .verdict-card.reject{background:var(--fail-bg);border-color:var(--fail-ring)}
-.verdict-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
-.verdict-label.hire{color:var(--pass)}
-.verdict-label.consider{color:var(--warn)}
-.verdict-label.reject{color:var(--fail)}
-.verdict-title{font-size:16px;font-weight:800;color:var(--ink);letter-spacing:-.02em;margin-bottom:8px}
+.verdict-emoji{font-size:24px;margin-bottom:4px}
+.verdict-word{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:10px}
+.verdict-word.hire{color:var(--pass)}.verdict-word.consider{color:var(--warn)}.verdict-word.reject{color:var(--fail)}
 .verdict-reasons{display:flex;flex-direction:column;gap:5px}
 .verdict-reason{font-size:12px;font-weight:500;color:var(--ink-80);padding:6px 10px 6px 20px;border-radius:7px;position:relative;line-height:1.5;background:rgba(255,255,255,.6)}
 .verdict-reason::before{content:'';position:absolute;left:8px;top:12px;width:4px;height:4px;border-radius:50%;background:var(--ink-30)}
 
-/* Coverage check */
+/* Coverage */
 .coverage-card{background:var(--white);border:1px solid var(--ink-10);border-radius:12px;overflow:hidden}
 .coverage-hd{padding:9px 13px;background:var(--ink-05);border-bottom:1px solid var(--ink-10);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50)}
-.coverage-items{padding:10px 13px;display:flex;flex-direction:column;gap:6px}
+.coverage-items{padding:10px 13px;display:flex;flex-direction:column;gap:7px}
 .cov-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;font-weight:500;color:var(--ink-80);line-height:1.5}
-.cov-icon{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:10px}
+.cov-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:11px;font-weight:700}
 .cov-icon.ok{background:var(--pass-bg);color:var(--pass)}
 .cov-icon.warn{background:var(--warn-bg);color:var(--warn)}
 .cov-icon.miss{background:var(--fail-bg);color:var(--fail)}
 
 /* Followup */
-.followup-card{background:var(--purple-bg);border:1px solid var(--purple-ring);border-radius:10px;padding:12px 13px}
-.followup-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);margin-bottom:5px}
+.followup-card{background:var(--warn-bg);border:1px solid var(--warn-ring);border-left:3px solid var(--warn);border-radius:9px;padding:12px 13px}
+.followup-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:5px}
 .followup-text{font-size:12px;font-weight:500;color:var(--ink-80);line-height:1.6}
-
 .btn-redo-ivw{width:100%;height:34px;border-radius:8px;background:transparent;border:1.5px solid var(--purple-ring);color:var(--purple);font-size:11px;font-weight:700;font-family:var(--f);cursor:pointer;transition:all .15s}
 .btn-redo-ivw:hover{background:var(--purple-bg)}
+
+/* Feedback */
+.stars-row{display:flex;align-items:center;gap:3px;margin-bottom:11px}
+.star-btn{font-size:26px;background:none;border:none;cursor:pointer;transition:transform .15s var(--ease-back);color:var(--ink-10);line-height:1;padding:0 3px}
+.star-btn:hover{transform:scale(1.25)}
+.star-btn.active{color:var(--gold)}
+.star-label{font-size:11px;font-weight:600;color:var(--ink-50);margin-left:6px}
+.fstatus-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px}
+.fstatus-btn{font-size:10px;font-weight:700;padding:5px 12px;border-radius:99px;border:1.5px solid var(--ink-10);background:transparent;color:var(--ink-50);cursor:pointer;font-family:var(--f);transition:all .15s}
+.fstatus-btn:hover{border-color:var(--ink-30);color:var(--ink)}
+.fstatus-btn.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fstatus-btn.sel.green{background:var(--pass);border-color:var(--pass)}
+.fstatus-btn.sel.amber{background:var(--warn);border-color:var(--warn);color:#fff}
+.fstatus-btn.sel.red{background:var(--fail);border-color:var(--fail)}
+.fb-textarea{width:100%;min-height:80px;background:var(--ink-05);border:1.5px solid var(--ink-10);border-radius:9px;color:var(--ink);font-size:12px;font-weight:400;font-family:var(--f);padding:10px 12px;outline:none;resize:none;line-height:1.65;transition:all .15s;margin-bottom:10px}
+.fb-textarea:focus{border-color:var(--blue);background:var(--white);box-shadow:0 0 0 3px var(--blue-dim)}
+.fb-textarea::placeholder{color:var(--ink-30)}
+.btn-save-fb{width:100%;height:36px;border-radius:9px;background:var(--ink);color:#fff;font-size:12px;font-weight:700;font-family:var(--f);border:none;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-save-fb:hover{background:var(--ink-80);transform:translateY(-1px)}
+.btn-save-fb:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.fb-saved{background:var(--pass-bg);border-radius:9px;border:1px solid var(--pass-ring);padding:13px}
+.fsv-stars{display:flex;gap:2px;margin-bottom:4px}
+.fsv-star{font-size:16px;color:var(--ink-10)}.fsv-star.filled{color:var(--gold)}
+.fsv-status{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--pass);margin-bottom:4px}
+.fsv-comment{font-size:11px;font-weight:500;color:var(--ink-80);line-height:1.5}
+.fsv-edit{font-size:10px;font-weight:700;color:var(--blue);background:none;border:none;cursor:pointer;font-family:var(--f);margin-top:7px;display:block}
 </style>
 </head>
 <body>
@@ -867,96 +891,124 @@ function selectCand(id){
 
 function renderDetail(c){
   const stage=c.stage||'screening';
-  const stageOrder=['screening','contacted','interview','feedback'];
-  const stageIdx=stageOrder.indexOf(stage);
+  // Update checklist
   const chks=[
     {l:'Score y fortalezas revisados',done:true},
     {l:'Riesgos'+(c.critical?' ⚠ crítico':''),done:!c.critical},
-    {l:'Consejo de Romi leído',done:true},
-    {l:'Contactar por WhatsApp',done:stageIdx>=1||c.contacted},
-    {l:'Mover a entrevista',done:stageIdx>=2},
-    {l:'Registrar notas de entrevista',done:!!(c.ivwNotes&&c.ivwNotes.trim())},{l:'Análisis de Romi completado',done:!!c.ivwResult},
-    {l:'Dejar feedback con estrellas',done:c.fbStars>0},
+    {l:'Contactar por WhatsApp',done:c.contacted||stage!=='screening'},
+    {l:'Notas de entrevista',done:!!(c.ivwNotes&&c.ivwNotes.trim())},
+    {l:'Análisis de Romi',done:!!c.ivwResult},
+    {l:'Feedback con estrellas',done:c.fbStars>0},
   ];
   document.getElementById('chk-items').innerHTML=chks.map(ch=>`<div class="chk-item ${ch.done?'done':''}"><div class="chk-check">${ch.done?'<svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3" stroke="rgba(93,216,160,.9)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>${esc(ch.l)}</div>`).join('');
+
   const rp=document.getElementById('rpanel');
   document.getElementById('rp-idle').classList.add('hidden');
   const old=document.getElementById('rp-det');if(old)old.remove();
+
   const sc={pass:'var(--pass)',review:'var(--warn)',fail:'var(--fail)'}[c.tier]||'var(--ink-30)';
-  const vd=c.score>=75?'Excelente fit':c.score>=60?'Buen fit — entrevistar':c.score>=45?'Fit posible — validar':'Fit débil';
+  const vd=c.score>=75?'Excelente fit':c.score>=60?'Buen fit':c.score>=45?'Fit posible':'Fit débil';
   const ct=c.conf==='alta'?'conf-hi':c.conf==='baja'?'conf-lo':'conf-md';
   const cl={alta:'Perfil completo',media:'Perfil parcial',baja:'Perfil incompleto'};
   const ini=c.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
   const waHref=c.phone?`https://wa.me/${cleanPhone(c.phone)}?text=${encodeURIComponent(c.wa)}`:null;
   const rc={pass:'p',review:'r',fail:'f'}[c.tier]||'r';
-  const cvPrev=c.cvText?c.cvText.substring(0,500)+(c.cvText.length>500?'\n...':''):'No disponible — los candidatos analizados con la versión anterior no tienen CV guardado.';
-  const det=document.createElement('div');det.id='rp-det';det.style.cssText='display:flex;flex-direction:column;flex:1;overflow:hidden';
-  const waHtml=waHref
-    ?`<a href="${waHref}" target="_blank" style="text-decoration:none" onclick="markContacted('${c.id}')"><button class="btn-wa"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>Abrir WhatsApp → Enviar</button></a>`
-    :`<button class="btn-wa nophone" onclick="cpRaw('${et(c.wa)}')">Copiar mensaje WhatsApp</button>`;
+  const cvPrev=c.cvText?c.cvText.substring(0,500)+(c.cvText.length>500?'\n...':''):'Sin texto de CV guardado.';
+
+  // Decide which tab is active based on stage
+  const activeTab = stage==='interview'||stage==='feedback'?'interview':'perfil';
+  // If feedback already done, default to feedback tab
+  const startTab = c.fbStars>0&&stage==='feedback'?'feedback':stage==='interview'?'interview':'perfil';
+
+  const det=document.createElement('div');
+  det.id='rp-det';
+  det.style.cssText='display:flex;flex-direction:column;flex:1;overflow:hidden';
+
   det.innerHTML=`
-  <div class="stage-bar">
-    <button class="stage-btn${stage==='screening'?' active':stageIdx>0?' done':''}" onclick="setStage('${c.id}','screening')">
-      ${stageIdx>0?'✓ ':''}Screening
+  <!-- Hero always visible -->
+  <div style="padding:13px 15px;border-bottom:1px solid var(--ink-10);background:var(--white);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:12px">
+      <div class="rp-av">${ini}</div>
+      <div style="flex:1;min-width:0">
+        <div class="rp-name">${esc(c.name)}</div>
+        <div class="rp-role">${esc(c.role)}${c.exp?' · '+esc(c.exp):''}</div>
+        <div class="rp-loc">${esc(c.loc||'')}${c.phone?' · 📱 '+esc(c.phone):''}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px">
+      <div class="big-num" style="color:${sc}">${c.score}</div>
+      <div><div class="score-track"><div class="score-fill" style="width:${c.score}%;background:${sc}"></div></div><div class="score-verd">${vd}</div></div>
+      <span class="conf-tag ${ct}">${cl[c.conf]||'Parcial'}</span>
+    </div>
+  </div>
+
+  <!-- Stage tabs -->
+  <div class="tab-bar" id="tabbar-${c.id}">
+    <button class="tab-btn${startTab==='perfil'?' on':''}" onclick="switchTab('${c.id}','perfil')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 10.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Perfil
     </button>
-    <button class="stage-btn${stage==='contacted'?' active':stageIdx>1?' done':' clickable'}" onclick="setStage('${c.id}','contacted')">
-      ${stageIdx>1?'✓ ':''}Contactado
+    <button class="tab-btn${startTab==='contactar'?' on':c.contacted?' done':''}" onclick="switchTab('${c.id}','contactar')">
+      <div class="tab-dot"></div>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>
+      Contactar
     </button>
-    <button class="stage-btn${stage==='interview'?' active':stageIdx>2?' done':' clickable'}" onclick="setStage('${c.id}','interview')">
-      ${stageIdx>2?'✓ ':''}Entrevista
+    <button class="tab-btn${startTab==='interview'?' on':c.ivwResult?' done':''}" onclick="switchTab('${c.id}','interview')">
+      <div class="tab-dot"></div>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M4 4.5c0-.83.67-1.5 1.5-1.5h1c.83 0 1.5.67 1.5 1.5 0 .6-.35 1.1-.85 1.35L6 6.5V7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="9" r=".6" fill="currentColor"/></svg>
+      Entrevista
     </button>
-    <button class="stage-btn${stage==='feedback'?' active':' clickable'}" onclick="setStage('${c.id}','feedback')">
-      ${stage==='feedback'?'✓ ':''}Feedback
+    <button class="tab-btn${startTab==='feedback'?' on':c.fbStars>0?' done':''}" onclick="switchTab('${c.id}','feedback')">
+      <div class="tab-dot"></div>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1l1.24 2.5 2.76.4-2 1.95.47 2.74L6 7.25 3.53 8.59 4 5.85 2 3.9l2.76-.4z"/></svg>
+      Feedback
     </button>
   </div>
-  <div class="rp-body">
-    <div class="rp-hero">
-      <div class="rp-profile-row"><div class="rp-av">${ini}</div><div style="flex:1;min-width:0"><div class="rp-name">${esc(c.name)}</div><div class="rp-role">${esc(c.role)}${c.exp?' · '+esc(c.exp):''}</div><div class="rp-loc">${esc(c.loc||'')}${c.phone?' · 📱 '+esc(c.phone):''}</div></div></div>
-      <div class="score-display"><div class="big-num" style="color:${sc}">${c.score}</div><div style="flex:1"><div class="score-track"><div class="score-fill" style="width:${c.score}%;background:${sc}"></div></div><div class="score-verd">${vd}</div></div><span class="conf-tag ${ct}">${cl[c.conf]||'Parcial'}</span></div>
-    </div>
-    <div class="cv-preview-card"><div class="cv-preview-hd"><div class="cv-preview-lbl"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 1h7a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V2a1 1 0 011-1z" stroke="currentColor" stroke-width="1.1"/><path d="M3 4h5M3 6h5M3 8h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Vista previa del CV</div><button class="cv-toggle" id="cvtog-${c.id}" onclick="toggleCv('${c.id}')">Ver más</button></div><div class="cv-preview-body" id="cvbody-${c.id}">${esc(cvPrev)}</div></div>
+
+  <!-- TAB: PERFIL -->
+  <div class="tab-panel${startTab==='perfil'?' on':''}" id="tab-perfil-${c.id}">
     ${c.critical?`<div class="alert-card"><div class="alert-hd"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5L12 11H1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M6.5 4.5v3M6.5 9.5v.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><div class="alert-lbl">⚠ Riesgo crítico</div></div><div style="font-size:12px;font-weight:500;color:var(--ink-80);line-height:1.6">${esc(c.criticalMsg)}</div></div>`:''}
     <div class="tip-card"><div class="tip-hd"><svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor" style="color:var(--blue)"><path d="M6.5 1a5.5 5.5 0 100 11A5.5 5.5 0 006.5 1zm0 2.5a.75.75 0 110 1.5.75.75 0 010-1.5zm0 2.5a.5.5 0 01.5.5v2.5a.5.5 0 01-1 0V6.5a.5.5 0 01.5-.5z"/></svg><div class="tip-lbl">Consejo de Romi</div></div><div class="tip-body">${esc(c.tip)}</div></div>
     <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-green"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1L6.8 3.5l2.9.42-2.1 2.05.5 2.88L5.5 7.7l-2.6 1.25.5-2.88-2.1-2.05 2.9-.42z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>Fortalezas</div></div><div class="sec-body">${c.strengths.map(s=>`<div class="s-item g">${esc(s)}</div>`).join('')}</div></div>
     <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-red"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1L10 9.5H1z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M5.5 4v2.5M5.5 8v.3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Riesgos</div></div><div class="sec-body">${c.risks.map(r=>`<div class="s-item r">${esc(r)}</div>`).join('')}</div></div>
     <div class="rec-block ${rc}">${esc(c.rec)}</div>
     <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-blue"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M3 4h5M3 6.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Para el Hiring Manager</div><button class="cp-btn" onclick="cpText(this,'${et(c.exec)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.exec)}</div></div></div>
-    <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-orange"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.1"/><path d="M4.5 4.5c0-.8.4-1.2 1-1.2s1 .4 1 1.2c0 .6-.4 1-.9 1.2V6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="5.5" cy="8" r=".5" fill="currentColor"/></svg>Preguntas de Screening</div></div><div class="sec-body">${c.qs.map((q,i)=>`<div class="q-item"><span class="q-num">${i+1}</span>${esc(q)}</div>`).join('')}</div></div>
-    <div class="sec-card"><div class="sec-hd"><div class="sec-label" style="color:#128c7e"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967c-.273-.099-.471-.148-.67.15c-.197.297-.767.966-.94 1.164c-.173.199-.347.223-.644.075c-.297-.15-1.255-.463-2.39-1.475c-.883-.788-1.48-1.761-1.653-2.059c-.173-.297-.018-.458.13-.606c.134-.133.298-.347.446-.52c.149-.174.198-.298.298-.497c.099-.198.05-.371-.025-.52c-.075-.149-.669-1.612-.916-2.207c-.242-.579-.487-.5-.669-.51c-.173-.008-.371-.01-.57-.01c-.198 0-.52.074-.792.372c-.272.297-1.04 1.016-1.04 2.479c0 1.462 1.065 2.875 1.213 3.074c.149.198 2.096 3.2 5.077 4.487c.709.306 1.262.489 1.694.625c.712.227 1.36.195 1.871.118c.571-.085 1.758-.719 2.006-1.413c.248-.694.248-1.289.173-1.413c-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>WhatsApp</div><button class="cp-btn" onclick="cpText(this,'${et(c.wa)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.wa)}</div></div></div>
-    <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-ink"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="2.5" y="1.5" width="6" height="8" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M4 4h3M4 6h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Script de llamada</div><button class="cp-btn" onclick="cpText(this,'${et(c.call)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.call)}</div></div></div>
-    ${(stage==='interview'||stage==='feedback'||c.ivwNotes||c.ivwResult)?`
-    <div class="interview-card">
-      <div class="interview-hd">
-        <div class="sec-label sl-purple">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 4.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 .83-.5 1.25-1 1.5V7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="9" r=".6" fill="currentColor"/></svg>
-          Notas de entrevista
-        </div>
-        <span style="font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--purple);background:var(--purple-bg);border:1px solid var(--purple-ring);border-radius:99px;padding:2px 8px">Romi IA</span>
-      </div>
-      ${c.ivwResult ? renderIvwResult(c) : `
-      <div class="ivw-notes-wrap">
-        <div class="ivw-notes-label">
-          Escribe libremente tus observaciones de la entrevista. Romi cruzará tus notas contra los riesgos que identificó en el CV y te dará un veredicto.
-        </div>
-        <textarea class="ivw-notes-ta" id="ivwnotes-${c.id}" placeholder="Ej: En general me gustó el perfil. Demostró paciencia con clientes difíciles. Cuando le pregunté sobre su salida de Foundever dijo que fue por reestructura. Busca $13,000 por lo que nuestra oferta de $15,000 es competitiva..." rows="7">${esc(c.ivwNotes||'')}</textarea>
-        <button class="btn-analyze-ivw" id="ivwanalyzebtn-${c.id}" onclick="analyzeInterview('${c.id}')">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l1.2 3.1 3.3.48-2.4 2.33.57 3.3L7 9.1l-2.67 1.61.57-3.3L2.5 5.08l3.3-.48z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor"/></svg>
-          Analizar entrevista con Romi
-        </button>
-      </div>`}
-    </div>`:`
-    <div class="ivw-cta">
-      <div class="ivw-cta-title">📋 Entrevista con IA</div>
-      <div class="ivw-cta-sub">Mueve al candidato al stage "Entrevista" para dejar tus notas y que Romi las analice contra los riesgos del CV.</div>
-      <button class="btn-start-ivw" onclick="setStage('${c.id}','interview')">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 4.5l4 2-4 2V4.5z" fill="currentColor"/></svg>
-        Iniciar entrevista
-      </button>
-    </div>`}
-    <div class="feedback-card"><div class="sec-hd"><div class="sec-label sl-gold"><svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M5.5 1L6.8 3.5l2.9.42-2.1 2.05.5 2.88L5.5 7.7l-2.6 1.25.5-2.88-2.1-2.05 2.9-.42z"/></svg>Feedback del recruiter</div></div><div class="feedback-body" id="fbbody-${c.id}">${fbHtml(c)}</div></div>
+    <div class="cv-preview-card"><div class="cv-preview-hd"><div class="cv-preview-lbl"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 1h7a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V2a1 1 0 011-1z" stroke="currentColor" stroke-width="1.1"/><path d="M3 4h5M3 6h5M3 8h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Vista previa del CV</div><button class="cv-toggle" id="cvtog-${c.id}" onclick="toggleCv('${c.id}')">Ver más</button></div><div class="cv-preview-body" id="cvbody-${c.id}">${esc(cvPrev)}</div></div>
   </div>
+
+  <!-- TAB: CONTACTAR -->
+  <div class="tab-panel${startTab==='contactar'?' on':''}" id="tab-contactar-${c.id}">
+    <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-orange"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.1"/><path d="M4.5 4.5c0-.8.4-1.2 1-1.2s1 .4 1 1.2c0 .6-.4 1-.9 1.2V6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="5.5" cy="8" r=".5" fill="currentColor"/></svg>Preguntas de Screening</div></div><div class="sec-body">${c.qs.map((q,i)=>`<div class="q-item"><span class="q-num">${i+1}</span>${esc(q)}</div>`).join('')}</div></div>
+    <div class="sec-card"><div class="sec-hd"><div class="sec-label" style="color:#128c7e"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>Mensaje WhatsApp</div><button class="cp-btn" onclick="cpText(this,'${et(c.wa)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.wa)}</div></div></div>
+    <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-ink"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="2.5" y="1.5" width="6" height="8" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M4 4h3M4 6h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Script de llamada</div><button class="cp-btn" onclick="cpText(this,'${et(c.call)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.call)}</div></div></div>
+    ${waHref
+      ?`<a href="${waHref}" target="_blank" style="text-decoration:none" onclick="markContacted('${c.id}')"><button class="btn-wa" style="width:100%"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>Abrir WhatsApp → Enviar</button></a>`
+      :`<button class="btn-wa nophone" style="width:100%" onclick="cpRaw('${et(c.wa)}')">Copiar mensaje WhatsApp</button>`
+    }
+  </div>
+
+  <!-- TAB: ENTREVISTA -->
+  <div class="tab-panel${startTab==='interview'?' on':''}" id="tab-interview-${c.id}">
+    ${c.ivwResult ? renderIvwResult(c) : `
+    <div class="ivw-qs-ref">
+      <div class="ivw-qs-ref-label">Preguntas que Romi generó — úsalas como guía</div>
+      ${c.qs.map(q=>`<div class="ivw-qs-ref-item">${esc(q)}</div>`).join('')}
+    </div>
+    <div class="ivw-hint">Escribe libremente tus observaciones. Romi cruzará tus notas contra los <strong>${c.risks.length} riesgos</strong> que identificó en el CV y te dará un veredicto.</div>
+    <textarea class="ivw-notes-ta" id="ivwnotes-${c.id}" placeholder="Ej: Me gustó el perfil. Cuando le pregunté sobre su salida de Foundever dijo que fue por reestructura. Demostró paciencia con clientes difíciles. Busca $13,000...">${esc(c.ivwNotes||'')}</textarea>
+    <button class="btn-analyze-ivw" id="ivwanalyzebtn-${c.id}" onclick="analyzeInterview('${c.id}')">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l1.2 3.1 3.3.48-2.4 2.33.57 3.3L7 9.1l-2.67 1.61.57-3.3L2.5 5.08l3.3-.48z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor"/></svg>
+      Analizar entrevista con Romi
+    </button>`}
+  </div>
+
+  <!-- TAB: FEEDBACK -->
+  <div class="tab-panel${startTab==='feedback'?' on':''}" id="tab-feedback-${c.id}">
+    <div id="fbbody-${c.id}">${fbHtml(c)}</div>
+  </div>
+
+  <!-- Footer always visible -->
   <div class="rp-foot">
-    ${waHtml}
     <div class="foot-grid">
       <button class="btn-g save" onclick="addPipe('${c.id}')"><svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M1.5 1.5h10a.5.5 0 01.5.5v8l-4.5-3L4 10V2a.5.5 0 01.5-.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Pipeline</button>
       <button class="btn-g" onclick="expCSV('${c.id}')"><svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v7M6.5 8L4.5 6M6.5 8L8.5 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.5 10v1.5A.5.5 0 002 12h9a.5.5 0 00.5-.5V10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>CSV</button>
@@ -964,6 +1016,26 @@ function renderDetail(c){
   </div>`;
   rp.appendChild(det);
 }
+
+function switchTab(candId, tabName){
+  // Update tab buttons
+  const bar=document.getElementById('tabbar-'+candId);
+  if(bar)bar.querySelectorAll('.tab-btn').forEach((btn,i)=>{
+    const tabs=['perfil','contactar','interview','feedback'];
+    btn.classList.toggle('on',tabs[i]===tabName);
+  });
+  // Show/hide panels
+  ['perfil','contactar','interview','feedback'].forEach(t=>{
+    const panel=document.getElementById('tab-'+t+'-'+candId);
+    if(panel)panel.classList.toggle('on',t===tabName);
+  });
+  // Auto-mark contacted when switching to contactar tab
+  const c=X.cands.find(x=>x.id===candId);
+  if(tabName==='contactar'&&c&&!c.contacted){
+    // don't auto-mark, just navigate
+  }
+}
+
 
 // ── INTERVIEW ANALYSIS ───────────────────────────────────────────────────
 
@@ -973,38 +1045,29 @@ function renderIvwResult(c){
   const vcls={Contratar:'hire',Considerar:'consider','No contratar':'reject'}[r.verdict]||'consider';
   const vcolor={hire:'var(--pass)',consider:'var(--warn)',reject:'var(--fail)'}[vcls];
   const vemoji={hire:'✅',consider:'⚠️',reject:'❌'}[vcls];
-  return`<div class="ivw-result">
-    <div class="verdict-card ${vcls}">
-      <div class="verdict-label ${vcls}">${vemoji} Veredicto</div>
-      <div class="verdict-title" style="color:${vcolor}">${esc(r.verdict||'')}</div>
-      <div class="verdict-reasons">
-        ${(r.reasons||[]).map(reason=>`<div class="verdict-reason">${esc(reason)}</div>`).join('')}
-      </div>
-    </div>
-    <div class="coverage-card">
-      <div class="coverage-hd">Cobertura de riesgos del CV</div>
-      <div class="coverage-items">
-        ${(r.coverage||[]).map(item=>{
-          const cls=item.status==='ok'?'ok':item.status==='partial'?'warn':'miss';
-          const icon=item.status==='ok'?'✓':item.status==='partial'?'~':'✗';
-          return`<div class="cov-item">
-            <div class="cov-icon ${cls}">${icon}</div>
-            <div><strong>${esc(item.risk)}</strong>${item.note?` — ${esc(item.note)}`:''}${item.status==='miss'?' <span style="color:var(--fail);font-weight:600">No evaluado</span>':''}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-    ${r.followup?`<div class="followup-card">
-      <div class="followup-lbl">⚠ Pendiente de validar</div>
-      <div class="followup-text">${esc(r.followup)}</div>
-    </div>`:''}
-    <div style="padding:0 0 4px">
-      <div style="font-size:10px;font-weight:600;color:var(--ink-30);margin-bottom:6px;letter-spacing:.04em">TUS NOTAS</div>
-      <div style="font-size:11px;color:var(--ink-50);line-height:1.65;background:var(--ink-05);border-radius:8px;padding:10px 12px;white-space:pre-wrap">${esc(c.ivwNotes||'')}</div>
-    </div>
-    <button class="btn-redo-ivw" onclick="redoInterview('${c.id}')">Editar notas y re-analizar</button>
-  </div>`;
+  const reasonsHtml=(r.reasons||[]).map(reason=>'<div class="verdict-reason">'+esc(reason)+'</div>').join('');
+  const coverageHtml=(r.coverage||[]).map(function(item){
+    const cls=item.status==='ok'?'ok':item.status==='partial'?'warn':'miss';
+    const icon=item.status==='ok'?'✓':item.status==='partial'?'~':'✗';
+    const noteStr=item.note?' — '+esc(item.note):'';
+    const missTag=item.status==='miss'?' <span style="color:var(--fail);font-weight:700">No evaluado</span>':'';
+    return '<div class="cov-item"><div class="cov-icon '+cls+'">'+icon+'</div><div><strong>'+esc(item.risk)+'</strong>'+noteStr+missTag+'</div></div>';
+  }).join('');
+  const followupHtml=r.followup?'<div class="followup-card"><div class="followup-lbl">⚠ Pendiente de validar</div><div class="followup-text">'+esc(r.followup)+'</div></div>':'';
+  const notesHtml=c.ivwNotes?'<div style="background:var(--ink-05);border-radius:9px;padding:12px 13px"><div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-30);margin-bottom:6px">TUS NOTAS</div><div style="font-size:11px;color:var(--ink-50);line-height:1.65;white-space:pre-wrap">'+esc(c.ivwNotes)+'</div></div>':'';
+  return '<div style="display:flex;flex-direction:column;gap:9px">'
+    +'<div class="verdict-card '+vcls+'">'
+    +'<div class="verdict-emoji">'+vemoji+'</div>'
+    +'<div class="verdict-word '+vcls+'">'+esc(r.verdict||'')+'</div>'
+    +'<div class="verdict-reasons">'+reasonsHtml+'</div>'
+    +'</div>'
+    +'<div class="coverage-card"><div class="coverage-hd">Cobertura de riesgos del CV</div><div class="coverage-items">'+coverageHtml+'</div></div>'
+    +followupHtml
+    +notesHtml
+    +'<button class="btn-redo-ivw" data-id="'+c.id+'" onclick="redoInterview(this.dataset.id)">Editar notas y re-analizar</button>'
+    +'</div>';
 }
+
 
 function buildAnalyzePrompt(c){
   const NL='\n';
@@ -1193,28 +1256,21 @@ function toggleCv(id){
 async function setStage(id, newStage){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   c.stage=newStage;
-  // Auto-set contacted flag when moving past screening
   if(newStage==='contacted'||newStage==='interview'||newStage==='feedback')c.contacted=true;
   await updCand(c,{stage:newStage,contacted:c.contacted});
-  // Re-render the full detail panel to show new stage
+  // Re-render detail panel (stage affects which tab is default)
   renderDetail(c);
   renderCands();updateStats();updateGuide();
-  const labels={screening:'Screening',contacted:'Contactado',interview:'Entrevista',feedback:'Feedback'};
-  showToast(`Stage: ${labels[newStage]||newStage} ✓`);
 }
 
 function markContacted(id){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   c.contacted=true;
   if(c.tier!=='pass'){c.tier='pass';updCand(c,{tier:'pass',contacted:true});}else{updCand(c,{contacted:true});}
-  // Update checklist immediately and re-render
   renderCands();updateStats();updateGuide();
-  // Re-render detail to update checklist ticks
-  const det=document.getElementById('rp-det');
-  if(det){
-    const chks=[{l:'Score y fortalezas revisados',done:true},{l:'Riesgos'+(c.critical?' ⚠ crítico':''),done:!c.critical},{l:'Consejo de Romi leído',done:true},{l:'Contactar por WhatsApp',done:true},{l:'Entrevista realizada',done:Object.keys(c.ivwAnswers||{}).length>0},{l:'Feedback con estrellas',done:c.fbStars>0}];
-    document.getElementById('chk-items').innerHTML=chks.map(ch=>`<div class="chk-item ${ch.done?'done':''}"><div class="chk-check">${ch.done?'<svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3" stroke="rgba(93,216,160,.9)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>${esc(ch.l)}</div>`).join('');
-  }
+  // Update tab dot on Contactar tab
+  const bar=document.getElementById('tabbar-'+id);
+  if(bar){const btns=bar.querySelectorAll('.tab-btn');if(btns[1])btns[1].classList.add('done');}
   showToast('WhatsApp abierto · candidato en Pasa ✓');
 }
 
