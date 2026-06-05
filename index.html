@@ -411,7 +411,7 @@ body{font-family:var(--f);background:var(--white);color:var(--ink);font-size:13p
     <div>
       <div class="sb-lbl">Vacante activa</div>
       <div class="vac-dropdown-wrap" id="vac-dd-wrap">
-        <div class="vac-select-btn" id="vac-select-btn" onclick="toggleVacDd()">
+        <div class="vac-select-btn" id="vac-select-btn" onclick="toggleVacDd(event)">
           <div class="vsd-info">
             <div class="vsd-name" id="vsd-name">Sin vacante</div>
             <div class="vsd-meta" id="vsd-meta">Seleccionar o crear</div>
@@ -420,7 +420,7 @@ body{font-family:var(--f);background:var(--white);color:var(--ink);font-size:13p
         </div>
         <div class="vac-dropdown" id="vac-dd">
           <div id="vdd-items"></div>
-          <div class="vdd-new" onclick="openNewVacModal()">
+          <div class="vdd-new" onclick="openNewVacModal(event)">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 2v9M2 6.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             Nueva vacante
           </div>
@@ -724,9 +724,9 @@ function init(){
 
 // VACANCY UI
 function renderVacDd(){
-  document.getElementById('vdd-items').innerHTML=X.allVacs.map((v,i)=>`<div class="vdd-item${X.vac?.dbId===v.id?' selected':''}" onclick="selectVacByIdx(${i})"><div class="vdd-item-name">${esc(v.title)}</div><div class="vdd-item-meta">${esc(v.company||'')}${v.location?' · '+esc(v.location):''}</div></div>`).join('');
+  document.getElementById('vdd-items').innerHTML=X.allVacs.map((v,i)=>`<div class="vdd-item${X.vac?.dbId===v.id?' selected':''}" onclick="selectVacByIdx(${i},event)"><div class="vdd-item-name">${esc(v.title)}</div><div class="vdd-item-meta">${esc(v.company||'')}${v.location?' · '+esc(v.location):''}</div></div>`).join('');
 }
-function selectVacByIdx(i){const v=X.allVacs[i];if(v)selectVac(v);}
+function selectVacByIdx(i,e){if(e)e.stopPropagation();const v=X.allVacs[i];if(v)selectVac(v);}
 function renderVacDisplay(){
   const v=X.vac;
   if(!v){document.getElementById('vsd-name').textContent='Sin vacante';document.getElementById('vsd-meta').textContent='Seleccionar o crear';document.getElementById('vac-reqs-display').innerHTML='';return;}
@@ -734,11 +734,11 @@ function renderVacDisplay(){
   document.getElementById('vsd-meta').textContent=[v.co,v.loc].filter(Boolean).join(' · ')||'Sin detalles';
   document.getElementById('vac-reqs-display').innerHTML=(v.reqs||[]).slice(0,4).map(r=>`<span class="vreq">${esc(r)}</span>`).join('');
 }
-function toggleVacDd(){const dd=document.getElementById('vac-dd'),ar=document.getElementById('vsd-arrow');const o=dd.classList.contains('open');dd.classList.toggle('open',!o);ar.classList.toggle('open',!o);renderVacDd();}
+function toggleVacDd(e){if(e)e.stopPropagation();const dd=document.getElementById('vac-dd'),ar=document.getElementById('vsd-arrow');const o=dd.classList.contains('open');dd.classList.toggle('open',!o);ar.classList.toggle('open',!o);renderVacDd();}
 function closeVacDd(){document.getElementById('vac-dd').classList.remove('open');document.getElementById('vsd-arrow').classList.remove('open');}
 document.addEventListener('click',e=>{if(!document.getElementById('vac-dd-wrap').contains(e.target))closeVacDd();});
 
-function openNewVacModal(){
+function openNewVacModal(e){if(e)e.stopPropagation();
   document.getElementById('vi-t').value='';document.getElementById('vi-co').value='';document.getElementById('vi-loc').value='';document.getElementById('vi-desc').value='';
   document.querySelectorAll('#treqs .tchip').forEach(c=>c.remove());
   closeVacDd();openModal('m-vac');
