@@ -323,6 +323,21 @@ body{font-family:var(--f);background:var(--white);color:var(--ink);font-size:13p
 .tdot{width:6px;height:6px;border-radius:50%;background:#5DD8A0;flex-shrink:0}
 .tdot.err{background:#F58A8A}
 .hidden{display:none!important}
+
+/* ── STAGE SYSTEM ─────────────────────────────────────── */
+.stage-bar{display:flex;gap:4px;padding:10px 15px;border-bottom:1px solid var(--ink-10);background:var(--ink-05);flex-shrink:0}
+.stage-btn{flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;font-family:var(--f);border:1.5px solid var(--ink-10);background:var(--white);color:var(--ink-30);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:4px;letter-spacing:.02em}
+.stage-btn.done{border-color:var(--pass-ring);background:var(--pass-bg);color:var(--pass)}
+.stage-btn.active{border-color:var(--blue);background:var(--blue);color:#fff;box-shadow:var(--sh-blue)}
+.stage-btn.clickable:not(.active):not(.done){border-color:var(--ink-30);color:var(--ink-80);cursor:pointer}
+.stage-btn.clickable:not(.active):not(.done):hover{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+
+/* Interview CTA banner */
+.ivw-cta{background:var(--purple-bg);border:1.5px solid var(--purple-ring);border-radius:12px;padding:14px;text-align:center}
+.ivw-cta-title{font-size:13px;font-weight:700;color:var(--purple);margin-bottom:4px}
+.ivw-cta-sub{font-size:11px;font-weight:500;color:var(--ink-50);margin-bottom:12px;line-height:1.5}
+.btn-start-ivw{height:38px;padding:0 20px;border-radius:9px;background:var(--purple);color:#fff;font-size:12px;font-weight:700;font-family:var(--f);border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.btn-start-ivw:hover{background:#5a3490;transform:translateY(-1px)}
 </style>
 </head>
 <body>
@@ -588,13 +603,14 @@ function dbToC(r){
     viewed:false,contacted:r.contacted||false,
     fbStars:r.fb_stars!=null?r.fb_stars:0,fbStatus:r.fb_status||'',fbComment:r.fb_comment||'',
     ivwAnswers:r.interview_answers||{},ivwSummary:r.interview_summary||'',ivwEvals:r.interview_evals||{},
+    stage:r.stage||'screening',
   };
 }
 
 async function saveCandToDb(c){
   if(!db)return;
   try{
-    const p={name:c.name,role:c.role||'',location:c.loc||'',phone:c.phone||null,score:c.score,tier:c.tier,one_liner:c.oneLiner||'',confidence:c.conf||'media',has_critical:c.critical||false,critical_msg:c.criticalMsg||'',strengths:c.strengths||[],risks:c.risks||[],recommendation:c.rec||'',exec_summary:c.exec||'',screening_questions:c.qs||[],whatsapp_msg:c.wa||'',call_script:c.call||'',copilot_tip:c.tip||'',cv_text:c.cvText||'',vacancy_title:c.vacTitle||null,source_file:c.src||'',in_pipeline:false,analyzed_at:c.analyzedAt};
+    const p={name:c.name,role:c.role||'',location:c.loc||'',phone:c.phone||null,score:c.score,tier:c.tier,one_liner:c.oneLiner||'',confidence:c.conf||'media',has_critical:c.critical||false,critical_msg:c.criticalMsg||'',strengths:c.strengths||[],risks:c.risks||[],recommendation:c.rec||'',exec_summary:c.exec||'',screening_questions:c.qs||[],whatsapp_msg:c.wa||'',call_script:c.call||'',copilot_tip:c.tip||'',cv_text:c.cvText||'',vacancy_title:c.vacTitle||null,source_file:c.src||'',in_pipeline:false,analyzed_at:c.analyzedAt,stage:'screening'};
     const{data}=await db.from('candidates').insert(p).select('id').single();
     if(data)c.dbId=data.id;
   }catch(e){console.error('SaveCand:',e);}
@@ -805,8 +821,19 @@ function selectCand(id){
 }
 
 function renderDetail(c){
-  const chks=[{l:'Score y fortalezas revisados',done:true},{l:'Riesgos'+(c.critical?' ⚠ crítico':''),done:!c.critical},{l:'Consejo de Romi leído',done:true},{l:'Contactar por WhatsApp',done:c.contacted},{l:'Entrevista realizada',done:Object.keys(c.ivwAnswers||{}).length>0},{l:'Feedback con estrellas',done:c.fbStars>0}];
-  document.getElementById('chk-items').innerHTML=chks.map(ch=>`<div class="chk-item ${ch.done?'done':''}"><div class="chk-check">${ch.done?`<svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3" stroke="rgba(93,216,160,.9)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`:''}</div>${esc(ch.l)}</div>`).join('');
+  const stage=c.stage||'screening';
+  const stageOrder=['screening','contacted','interview','feedback'];
+  const stageIdx=stageOrder.indexOf(stage);
+  const chks=[
+    {l:'Score y fortalezas revisados',done:true},
+    {l:'Riesgos'+(c.critical?' ⚠ crítico':''),done:!c.critical},
+    {l:'Consejo de Romi leído',done:true},
+    {l:'Contactar por WhatsApp',done:stageIdx>=1||c.contacted},
+    {l:'Mover a entrevista',done:stageIdx>=2},
+    {l:'Registrar respuestas de entrevista',done:Object.keys(c.ivwAnswers||{}).length>0},
+    {l:'Dejar feedback con estrellas',done:c.fbStars>0},
+  ];
+  document.getElementById('chk-items').innerHTML=chks.map(ch=>`<div class="chk-item ${ch.done?'done':''}"><div class="chk-check">${ch.done?'<svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3" stroke="rgba(93,216,160,.9)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>${esc(ch.l)}</div>`).join('');
   const rp=document.getElementById('rpanel');
   document.getElementById('rp-idle').classList.add('hidden');
   const old=document.getElementById('rp-det');if(old)old.remove();
@@ -823,6 +850,20 @@ function renderDetail(c){
     ?`<a href="${waHref}" target="_blank" style="text-decoration:none" onclick="markContacted('${c.id}')"><button class="btn-wa"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>Abrir WhatsApp → Enviar</button></a>`
     :`<button class="btn-wa nophone" onclick="cpRaw('${et(c.wa)}')">Copiar mensaje WhatsApp</button>`;
   det.innerHTML=`
+  <div class="stage-bar">
+    <button class="stage-btn${stage==='screening'?' active':stageIdx>0?' done':''}" onclick="setStage('${c.id}','screening')">
+      ${stageIdx>0?'✓ ':''}Screening
+    </button>
+    <button class="stage-btn${stage==='contacted'?' active':stageIdx>1?' done':' clickable'}" onclick="setStage('${c.id}','contacted')">
+      ${stageIdx>1?'✓ ':''}Contactado
+    </button>
+    <button class="stage-btn${stage==='interview'?' active':stageIdx>2?' done':' clickable'}" onclick="setStage('${c.id}','interview')">
+      ${stageIdx>2?'✓ ':''}Entrevista
+    </button>
+    <button class="stage-btn${stage==='feedback'?' active':' clickable'}" onclick="setStage('${c.id}','feedback')">
+      ${stage==='feedback'?'✓ ':''}Feedback
+    </button>
+  </div>
   <div class="rp-body">
     <div class="rp-hero">
       <div class="rp-profile-row"><div class="rp-av">${ini}</div><div style="flex:1;min-width:0"><div class="rp-name">${esc(c.name)}</div><div class="rp-role">${esc(c.role)}${c.exp?' · '+esc(c.exp):''}</div><div class="rp-loc">${esc(c.loc||'')}${c.phone?' · 📱 '+esc(c.phone):''}</div></div></div>
@@ -838,6 +879,7 @@ function renderDetail(c){
     <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-orange"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.1"/><path d="M4.5 4.5c0-.8.4-1.2 1-1.2s1 .4 1 1.2c0 .6-.4 1-.9 1.2V6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="5.5" cy="8" r=".5" fill="currentColor"/></svg>Preguntas de Screening</div></div><div class="sec-body">${c.qs.map((q,i)=>`<div class="q-item"><span class="q-num">${i+1}</span>${esc(q)}</div>`).join('')}</div></div>
     <div class="sec-card"><div class="sec-hd"><div class="sec-label" style="color:#128c7e"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967c-.273-.099-.471-.148-.67.15c-.197.297-.767.966-.94 1.164c-.173.199-.347.223-.644.075c-.297-.15-1.255-.463-2.39-1.475c-.883-.788-1.48-1.761-1.653-2.059c-.173-.297-.018-.458.13-.606c.134-.133.298-.347.446-.52c.149-.174.198-.298.298-.497c.099-.198.05-.371-.025-.52c-.075-.149-.669-1.612-.916-2.207c-.242-.579-.487-.5-.669-.51c-.173-.008-.371-.01-.57-.01c-.198 0-.52.074-.792.372c-.272.297-1.04 1.016-1.04 2.479c0 1.462 1.065 2.875 1.213 3.074c.149.198 2.096 3.2 5.077 4.487c.709.306 1.262.489 1.694.625c.712.227 1.36.195 1.871.118c.571-.085 1.758-.719 2.006-1.413c.248-.694.248-1.289.173-1.413c-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>WhatsApp</div><button class="cp-btn" onclick="cpText(this,'${et(c.wa)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.wa)}</div></div></div>
     <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-ink"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="2.5" y="1.5" width="6" height="8" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M4 4h3M4 6h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Script de llamada</div><button class="cp-btn" onclick="cpText(this,'${et(c.call)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.call)}</div></div></div>
+    ${(stage==='interview'||stage==='feedback'||Object.keys(c.ivwAnswers||{}).length>0)?`
     <div class="interview-card">
       <div class="interview-hd"><div class="sec-label sl-purple"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 4.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 .83-.5 1.25-1 1.5V7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="9" r=".6" fill="currentColor"/></svg>Entrevista con IA</div><span style="font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--purple);background:var(--purple-bg);border:1px solid var(--purple-ring);border-radius:99px;padding:2px 8px">Beta</span></div>
       <div class="ivw-q-wrap" id="ivwqs-${c.id}">${c.qs.map((q,i)=>buildIvwQ(c,q,i)).join('')}</div>
@@ -845,7 +887,15 @@ function renderDetail(c){
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5l1 2.6 2.7.39-1.95 1.9.46 2.71L6.5 7.85l-2.21 1.25.46-2.71-1.95-1.9 2.7-.39z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="currentColor"/></svg>
         Evaluar entrevista completa
       </button>`}
-    </div>
+    </div>`:`
+    <div class="ivw-cta">
+      <div class="ivw-cta-title">📋 Entrevista con IA</div>
+      <div class="ivw-cta-sub">Cuando el candidato llegue a entrevista, muévelo a ese stage para registrar sus respuestas y que Romi las evalúe en tiempo real.</div>
+      <button class="btn-start-ivw" onclick="setStage('${c.id}','interview')">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 4.5l4 2-4 2V4.5z" fill="currentColor"/></svg>
+        Mover a Entrevista
+      </button>
+    </div>`}
     <div class="feedback-card"><div class="sec-hd"><div class="sec-label sl-gold"><svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M5.5 1L6.8 3.5l2.9.42-2.1 2.05.5 2.88L5.5 7.7l-2.6 1.25.5-2.88-2.1-2.05 2.9-.42z"/></svg>Feedback del recruiter</div></div><div class="feedback-body" id="fbbody-${c.id}">${fbHtml(c)}</div></div>
   </div>
   <div class="rp-foot">
@@ -978,6 +1028,19 @@ function toggleCv(id){
 }
 
 // WA
+async function setStage(id, newStage){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.stage=newStage;
+  // Auto-set contacted flag when moving past screening
+  if(newStage==='contacted'||newStage==='interview'||newStage==='feedback')c.contacted=true;
+  await updCand(c,{stage:newStage,contacted:c.contacted});
+  // Re-render the full detail panel to show new stage
+  renderDetail(c);
+  renderCands();updateStats();updateGuide();
+  const labels={screening:'Screening',contacted:'Contactado',interview:'Entrevista',feedback:'Feedback'};
+  showToast(`Stage: ${labels[newStage]||newStage} ✓`);
+}
+
 function markContacted(id){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   c.contacted=true;
