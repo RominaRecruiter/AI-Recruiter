@@ -534,7 +534,7 @@ function setDbS(s,l){document.getElementById('db-dot').className='db-dot '+s;doc
 
 async function loadVacs(){
   if(!db)return;
-  const{data}=await db.from('vacancies').select('*').order('created_at',{ascending:false});
+  const{data}=await db.from('vacancies').select('*').order('created_at',{ascending:false}).limit(100);
   X.allVacs=data||[];
   renderVacDd();
   const lastId=S.g('last_vac');
@@ -553,8 +553,15 @@ async function selectVac(vRow){
 async function loadCandsForVac(vacId){
   if(!db)return;
   setDbS('loading','Cargando...');
-  const{data}=await db.from('candidates').select('*').eq('in_pipeline',false).eq('vacancy_title',X.vac.t).order('analyzed_at',{ascending:false}).limit(200);
-  X.cands=(data||[]).map(dbToC);X.sel=null;renderIdle();renderCands();updateStats();
+  // Load by vacancy_id OR vacancy_title (handles old + new candidates)
+  const{data: byTitle}=await db.from('candidates').select('*').eq('in_pipeline',false).eq('vacancy_title',X.vac.t).order('analyzed_at',{ascending:false}).limit(200);
+  // Also load candidates that have no vacancy assigned (unassigned legacy candidates)
+  const{data: noVac}=await db.from('candidates').select('*').eq('in_pipeline',false).is('vacancy_title',null).order('analyzed_at',{ascending:false}).limit(50);
+  const all=[...(byTitle||[]),...(noVac||[])];
+  // Dedupe by id
+  const seen=new Set();
+  const deduped=all.filter(r=>{if(seen.has(r.id))return false;seen.add(r.id);return true;});
+  X.cands=deduped.map(dbToC);X.sel=null;renderIdle();renderCands();updateStats();
   setDbS('ok',`Supabase ✓ · ${X.cands.length} candidatos`);
 }
 
@@ -579,7 +586,7 @@ function dbToC(r){
     analyzedAt:r.analyzed_at,src:r.source_file||'',
     dbId:r.id,inPipeline:r.in_pipeline||false,
     viewed:false,contacted:r.contacted||false,
-    fbStars:r.fb_stars||0,fbStatus:r.fb_status||'',fbComment:r.fb_comment||'',
+    fbStars:r.fb_stars!=null?r.fb_stars:0,fbStatus:r.fb_status||'',fbComment:r.fb_comment||'',
     ivwAnswers:r.interview_answers||{},ivwSummary:r.interview_summary||'',ivwEvals:r.interview_evals||{},
   };
 }
@@ -656,8 +663,9 @@ function init(){
 
 // VACANCY UI
 function renderVacDd(){
-  document.getElementById('vdd-items').innerHTML=X.allVacs.map(v=>`<div class="vdd-item${X.vac?.dbId===v.id?' selected':''}" onclick='selectVac(${JSON.stringify(v).replace(/'/g,"&apos;")})'><div class="vdd-item-name">${esc(v.title)}</div><div class="vdd-item-meta">${esc(v.company||'')}${v.location?' · '+esc(v.location):''}</div></div>`).join('');
+  document.getElementById('vdd-items').innerHTML=X.allVacs.map((v,i)=>`<div class="vdd-item${X.vac?.dbId===v.id?' selected':''}" onclick="selectVacByIdx(${i})"><div class="vdd-item-name">${esc(v.title)}</div><div class="vdd-item-meta">${esc(v.company||'')}${v.location?' · '+esc(v.location):''}</div></div>`).join('');
 }
+function selectVacByIdx(i){const v=X.allVacs[i];if(v)selectVac(v);}
 function renderVacDisplay(){
   const v=X.vac;
   if(!v){document.getElementById('vsd-name').textContent='Sin vacante';document.getElementById('vsd-meta').textContent='Seleccionar o crear';document.getElementById('vac-reqs-display').innerHTML='';return;}
@@ -928,7 +936,7 @@ async function genSum(id){
 // FEEDBACK
 const sLabels=['','Muy malo','Regular','Bueno','Muy bueno','Excelente'];
 function fbHtml(c){
-  if(c.fbStars>0&&!c._editFb){
+  if(c.fbStars&&c.fbStars>0&&!c._editFb){
     return`<div style="padding:13px"><div class="fb-saved"><div class="fsv-stars">${[1,2,3,4,5].map(n=>`<span class="fsv-star${n<=c.fbStars?' filled':''}">★</span>`).join('')}</div>${c.fbStatus?`<div class="fsv-status">${esc(c.fbStatus)}</div>`:''} ${c.fbComment?`<div class="fsv-comment">${esc(c.fbComment)}</div>`:''}<button class="fsv-edit" onclick="editFb('${c.id}')">Editar feedback</button></div></div>`;
   }
   const stats=[{l:'Agendó entrevista',cls:'green'},{l:'No contestó',cls:'amber'},{l:'En proceso',cls:'amber'},{l:'Contratado',cls:'green'},{l:'Descartado',cls:'red'}];
@@ -974,7 +982,15 @@ function markContacted(id){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   c.contacted=true;
   if(c.tier!=='pass'){c.tier='pass';updCand(c,{tier:'pass',contacted:true});}else{updCand(c,{contacted:true});}
-  setTimeout(()=>{renderCands();updateStats();updateGuide();showToast('WhatsApp abierto · candidato en Pasa ✓');},300);
+  // Update checklist immediately and re-render
+  renderCands();updateStats();updateGuide();
+  // Re-render detail to update checklist ticks
+  const det=document.getElementById('rp-det');
+  if(det){
+    const chks=[{l:'Score y fortalezas revisados',done:true},{l:'Riesgos'+(c.critical?' ⚠ crítico':''),done:!c.critical},{l:'Consejo de Romi leído',done:true},{l:'Contactar por WhatsApp',done:true},{l:'Entrevista realizada',done:Object.keys(c.ivwAnswers||{}).length>0},{l:'Feedback con estrellas',done:c.fbStars>0}];
+    document.getElementById('chk-items').innerHTML=chks.map(ch=>`<div class="chk-item ${ch.done?'done':''}"><div class="chk-check">${ch.done?'<svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3" stroke="rgba(93,216,160,.9)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>${esc(ch.l)}</div>`).join('');
+  }
+  showToast('WhatsApp abierto · candidato en Pasa ✓');
 }
 
 function renderIdle(){
