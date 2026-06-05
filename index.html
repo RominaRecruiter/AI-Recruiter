@@ -688,6 +688,7 @@ function dbToC(r){
     dbId:r.id,inPipeline:r.in_pipeline||false,
     viewed:false,contacted:r.contacted||false,
     fbStars:r.fb_stars!=null?r.fb_stars:0,fbStatus:r.fb_status||'',fbComment:r.fb_comment||'',
+    fbOutcome:r.fb_outcome||'',fbDeclineReason:r.fb_decline_reason||'',
     ivwAnswers:r.interview_answers||{},ivwSummary:r.interview_summary||'',ivwEvals:r.interview_evals||{},
     ivwNotes:r.interview_notes||'',ivwResult:r.interview_result||null,
     stage:r.stage||'screening',
@@ -1004,13 +1005,12 @@ function renderDetail(c){
 
   <!-- TAB: CONTACTAR -->
   <div class="tab-panel${startTab==='contactar'?' on':''}" id="tab-contactar-${c.id}">
-    <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-orange"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.1"/><path d="M4.5 4.5c0-.8.4-1.2 1-1.2s1 .4 1 1.2c0 .6-.4 1-.9 1.2V6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="5.5" cy="8" r=".5" fill="currentColor"/></svg>Preguntas de Screening</div></div><div class="sec-body">${c.qs.map((q,i)=>`<div class="q-item"><span class="q-num">${i+1}</span>${esc(q)}</div>`).join('')}</div></div>
     <div class="sec-card"><div class="sec-hd"><div class="sec-label" style="color:#128c7e"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>Mensaje WhatsApp</div><button class="cp-btn" onclick="cpText(this,'${et(c.wa)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.wa)}</div></div></div>
     <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-ink"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="2.5" y="1.5" width="6" height="8" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M4 4h3M4 6h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Script de llamada</div><button class="cp-btn" onclick="cpText(this,'${et(c.call)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.call)}</div></div></div>
     <div style="background:var(--pass-bg);border:1px solid var(--pass-ring);border-radius:12px;padding:14px;text-align:center">
-      <div style="font-size:11px;font-weight:600;color:var(--pass);margin-bottom:10px">${c.contacted?'✓ Ya contactado — el candidato está en Pasa':'Listo para contactar · se moverá a Pasa automáticamente'}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--pass);margin-bottom:10px">${c.contacted?'✓ Mensaje enviado — candidato en Pasa':'Listo para contactar — pasa a &quot;Pasa&quot; automáticamente al enviar'}</div>
       ${waHref
-        ?`<a href="${waHref}" target="_blank" style="text-decoration:none;display:block" onclick="markContacted('${c.id}')"><button class="btn-wa" style="width:100%;height:46px;font-size:14px">${wa_svg}Abrir WhatsApp → Enviar</button></a>`
+        ?`<a href="${waHref}" target="_blank" style="text-decoration:none;display:block" onclick="markContacted('${c.id}')"><button class="btn-wa" style="width:100%;height:46px;font-size:14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a5.263 5.263 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>Abrir WhatsApp → Enviar</button></a>`
         :`<button class="btn-wa nophone" style="width:100%;height:46px" onclick="cpRaw('${et(c.wa)}')">Copiar mensaje WhatsApp</button>`
       }
     </div>
@@ -1244,43 +1244,145 @@ async function genSum(id){
 // FEEDBACK
 const sLabels=['','Muy malo','Regular','Bueno','Muy bueno','Excelente'];
 function fbHtml(c){
-  if(c.fbStars&&c.fbStars>0&&!c._editFb){
-    return`<div style="padding:13px"><div class="fb-saved"><div class="fsv-stars">${[1,2,3,4,5].map(n=>`<span class="fsv-star${n<=c.fbStars?' filled':''}">★</span>`).join('')}</div>${c.fbStatus?`<div class="fsv-status">${esc(c.fbStatus)}</div>`:''} ${c.fbComment?`<div class="fsv-comment">${esc(c.fbComment)}</div>`:''}<button class="fsv-edit" onclick="editFb('${c.id}')">Editar feedback</button></div></div>`;
+  // Show saved view if feedback is complete (has stars and outcome)
+  if(c.fbOutcome&&!c._editFb){
+    const outcomeColors={
+      'Contratado':'green','Guardado para futuro':'blue',
+      'No avanzó':'red'
+    };
+    const oc=outcomeColors[c.fbOutcome]||'gray';
+    const ocStyle={
+      green:'background:var(--pass-bg);color:var(--pass);border:1px solid var(--pass-ring)',
+      blue:'background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-ring)',
+      red:'background:var(--fail-bg);color:var(--fail);border:1px solid var(--fail-ring)',
+      gray:'background:var(--ink-05);color:var(--ink-50);border:1px solid var(--ink-10)'
+    }[oc];
+    return `<div style="display:flex;flex-direction:column;gap:10px;padding:13px">
+      <div style="background:var(--ink-05);border:1px solid var(--ink-10);border-radius:12px;padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-30)">Calificación</div>
+          <div style="display:flex;gap:2px">${[1,2,3,4,5].map(n=>`<span style="font-size:18px;color:${n<=(c.fbStars||0)?'var(--gold)':'var(--ink-10)'}">★</span>`).join('')}</div>
+        </div>
+        <div style="display:inline-block;padding:5px 14px;border-radius:99px;font-size:12px;font-weight:600;${ocStyle}">${esc(c.fbOutcome)}</div>
+        ${c.fbDeclineReason?`<div style="margin-top:8px;font-size:11px;color:var(--ink-50);font-style:italic">Razón: ${esc(c.fbDeclineReason)}</div>`:''}
+        ${c.fbComment?`<div style="margin-top:8px;font-size:12px;color:var(--ink-80);line-height:1.6;padding-top:8px;border-top:1px solid var(--ink-10)">${esc(c.fbComment)}</div>`:''}
+      </div>
+      <button class="btn-redo-ivw" onclick="editFb('${c.id}')">Editar feedback</button>
+    </div>`;
   }
-  const stats=[{l:'Agendó entrevista',cls:'green'},{l:'No contestó',cls:'amber'},{l:'En proceso',cls:'amber'},{l:'Contratado',cls:'green'},{l:'Descartado',cls:'red'}];
-  return`<div style="display:flex;flex-direction:column;gap:12px">
-    <div style="background:var(--gold-light,#fffdf0);border:1px solid #f0e0a0;border-radius:12px;padding:16px;text-align:center">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:10px">¿Cómo calificarías a este candidato?</div>
-      <div class="stars-row" id="stars-${c.id}">${[1,2,3,4,5].map(n=>`<button class="star-btn${n<=(c.fbStars||0)?' active':''}" onclick="setStar('${c.id}',${n})">★</button>`).join('')}</div>
-      <div class="star-label" id="slbl-${c.id}" style="margin:0;display:block">${sLabels[c.fbStars||0]||'Toca una estrella para calificar'}</div>
+
+  // Edit/new form
+  const outcomes=[
+    {l:'Contratado',icon:'✅',cls:'green'},
+    {l:'Guardado para futuro',icon:'🔄',cls:'blue'},
+    {l:'No avanzó',icon:'❌',cls:'red'}
+  ];
+  const declineReasons=[
+    'No pasó la entrevista',
+    'Expectativa salarial alta',
+    'Ya tenía otra oferta',
+    'Vacante cerrada',
+    'No disponible',
+    'Otro motivo'
+  ];
+  const showDecline=c.fbOutcome==='No avanzó';
+  return `<div style="display:flex;flex-direction:column;gap:12px;padding:13px">
+
+    <!-- Stars -->
+    <div style="background:#fffdf0;border:0.5px solid #f0e0a0;border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:10px">Califica al candidato</div>
+      <div class="stars-row" id="stars-${c.id}">
+        ${[1,2,3,4,5].map(n=>`<button class="star-btn${n<=(c.fbStars||0)?' active':''}" onclick="setStar('${c.id}',${n})">★</button>`).join('')}
+      </div>
+      <div class="star-label" id="slbl-${c.id}" style="display:block;margin:0">${sLabels[c.fbStars||0]||'Toca una estrella para calificar'}</div>
     </div>
-    <div style="border:1px solid var(--ink-10);border-radius:12px;padding:14px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:10px">¿Qué pasó?</div>
-      <div class="fstatus-row">${stats.map(s=>`<button class="fstatus-btn${c.fbStatus===s.l?' sel '+s.cls:''}" onclick="setFbS('${c.id}','${s.l}','${s.cls}')">${s.l}</button>`).join('')}</div>
-      <textarea class="fb-textarea" id="fbtxt-${c.id}" placeholder="Notas adicionales: qué te gustó, qué te preocupó, por qué avanzó o no...">${esc(c.fbComment||'')}</textarea>
-      <button class="btn-save-fb" id="fbsave-${c.id}" onclick="saveFb('${c.id}')" ${!c.fbStars?'disabled':''}><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Guardar feedback</button>
+
+    <!-- Outcome -->
+    <div style="border:1px solid var(--ink-10);border-radius:12px;padding:13px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:10px">¿Cómo terminó el proceso?</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+        ${outcomes.map(o=>`
+          <button onclick="setOutcome('${c.id}','${o.l}')" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:9px;border:1.5px solid ${c.fbOutcome===o.l?'var(--blue)':'var(--ink-10)'};background:${c.fbOutcome===o.l?'var(--blue-dim)':'transparent'};cursor:pointer;font-family:var(--f);text-align:left;transition:all .15s">
+            <span style="font-size:16px">${o.icon}</span>
+            <span style="font-size:12px;font-weight:600;color:${c.fbOutcome===o.l?'var(--blue)':'var(--ink-80)'}">${o.l}</span>
+          </button>`).join('')}
+      </div>
+
+      <!-- Decline reason (only shown when No avanzó) -->
+      <div id="decline-wrap-${c.id}" style="display:${showDecline?'block':'none'};margin-bottom:12px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:8px">¿Por qué razón?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          ${declineReasons.map(r=>`<button onclick="setDeclineReason('${c.id}','${r}')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;border:1.5px solid ${c.fbDeclineReason===r?'var(--fail-ring)':'var(--ink-10)'};background:${c.fbDeclineReason===r?'var(--fail-bg)':'transparent'};color:${c.fbDeclineReason===r?'var(--fail)':'var(--ink-50)'};cursor:pointer;font-family:var(--f);transition:all .15s">${r}</button>`).join('')}
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:7px">Notas adicionales <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-30)">(Romi aprende de esto)</span></div>
+      <textarea class="fb-textarea" id="fbtxt-${c.id}" placeholder="Ej: Excelente candidato pero solo tenemos un espacio. Reactivar en 3 meses. Expectativa salarial alineada. Muy buena actitud durante todo el proceso...">${esc(c.fbComment||'')}</textarea>
+      <button class="btn-save-fb" id="fbsave-${c.id}" onclick="saveFb('${c.id}')" ${!c.fbStars||!c.fbOutcome?'disabled':''}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Guardar feedback
+      </button>
     </div>
   </div>`;
 }
 function setStar(id,n){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   c.fbStars=n;
-  document.querySelectorAll(`#stars-${id} .star-btn`).forEach((b,i)=>b.classList.toggle('active',i<n));
+  document.querySelectorAll('#stars-'+id+' .star-btn').forEach((b,i)=>b.classList.toggle('active',i<n));
   const l=document.getElementById('slbl-'+id);if(l)l.textContent=sLabels[n];
-  const sv=document.getElementById('fbsave-'+id);if(sv)sv.disabled=false;
+  checkFbReady(id);
+}
+function checkFbReady(id){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  const sv=document.getElementById('fbsave-'+id);
+  if(sv)sv.disabled=!(c.fbStars>0&&c.fbOutcome);
+}
+function setOutcome(id,outcome){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.fbOutcome=outcome;
+  // Re-render feedback body to show/hide decline reasons
+  const body=document.getElementById('fbbody-'+id);
+  if(body)body.innerHTML=fbHtml(c);
+}
+function setDeclineReason(id,reason){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.fbDeclineReason=reason;
+  // Re-render to update selection
+  const body=document.getElementById('fbbody-'+id);
+  if(body)body.innerHTML=fbHtml(c);
 }
 function setFbS(id,status,cls){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   c.fbStatus=status;
-  document.querySelectorAll('#rp-det .fstatus-btn').forEach(btn=>{btn.className='fstatus-btn';if(btn.textContent===status)btn.className=`fstatus-btn sel ${cls}`;});
-  if(status==='Agendó entrevista'||status==='Contratado'){c.tier='pass';updCand(c,{tier:'pass'});renderCands();updateStats();showToast(`${c.name} → Pasa ✓`);}
+  if(status==='Contratado'){c.tier='pass';updCand(c,{tier:'pass'});renderCands();updateStats();showToast(c.name+' → Contratado ✓');}
 }
 async function saveFb(id){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.fbComment=document.getElementById('fbtxt-'+id)?.value||'';c._editFb=false;
-  await updCand(c,{fb_stars:c.fbStars,fb_status:c.fbStatus,fb_comment:c.fbComment});
+  c.fbComment=document.getElementById('fbtxt-'+id)?.value||'';
+  c._editFb=false;
+  // Auto-set tier based on outcome
+  if(c.fbOutcome==='Contratado'){c.tier='pass';}
+  else if(c.fbOutcome==='No avanzó'){c.tier='fail';}
+  else if(c.fbOutcome==='Guardado para futuro'){c.inPipeline=true;}
+  await updCand(c,{
+    fb_stars:c.fbStars,
+    fb_status:c.fbOutcome||c.fbStatus||'',
+    fb_comment:c.fbComment,
+    fb_outcome:c.fbOutcome||'',
+    fb_decline_reason:c.fbDeclineReason||'',
+    tier:c.tier,
+    in_pipeline:c.inPipeline||false
+  });
+  // If guardado para futuro, add to pipeline
+  if(c.fbOutcome==='Guardado para futuro'&&!X.pipeline.find(p=>p.id===id)){
+    c.savedAt=new Date().toISOString();
+    await updCand(c,{in_pipeline:true,saved_at:c.savedAt});
+    X.pipeline.unshift(c);updatePipeBadge();
+  }
   const body=document.getElementById('fbbody-'+id);if(body)body.innerHTML=fbHtml(c);
-  renderCands();updateGuide();showToast('Feedback guardado ✓');
+  renderCands();updateStats();updateGuide();
+  showToast('Feedback guardado ✓');
 }
 function editFb(id){const c=X.cands.find(x=>x.id===id);if(!c)return;c._editFb=true;const body=document.getElementById('fbbody-'+id);if(body)body.innerHTML=fbHtml(c);}
 
