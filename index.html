@@ -1007,43 +1007,39 @@ function renderIvwResult(c){
 }
 
 function buildAnalyzePrompt(c){
-  const risks=(c.risks||[]).map((r,i)=>`${i+1}. ${r}`).join('
-');
-  const qs=(c.qs||[]).map((q,i)=>`${i+1}. ${q}`).join('
-');
-  return`Eres un experto en reclutamiento evaluando los resultados de una entrevista.
-
-CONTEXTO DEL CANDIDATO (ya analizado previamente, NO releas el CV):
-- Nombre: ${c.name}
-- Puesto al que aplica: ${c.vacTitle||'No especificado'}
-- Score inicial del CV: ${c.score}/100
-- Riesgos identificados en el CV:
-${risks}
-- Preguntas de screening que se recomendaron:
-${qs}
-
-NOTAS DEL RECRUITER DE LA ENTREVISTA:
-${c.ivwNotes||'Sin notas'}
-
-TU TAREA:
-1. Determina un veredicto basado ÚNICAMENTE en lo que dicen las notas del recruiter
-2. Verifica si cada riesgo del CV fue abordado en la entrevista según las notas
-3. Identifica si hay algo crítico que NO se evaluó
-
-Responde SOLO con JSON válido (sin markdown):
-{
-  "verdict": "Contratar"|"Considerar"|"No contratar",
-  "reasons": [
-    "<razón concreta extraída de las notas del recruiter>",
-    "<razón concreta>",
-    "<razón concreta>"
-  ],
-  "coverage": [
-    ${(c.risks||[]).map(r=>`{"risk":"${r.replace(/"/g,"'")}","status":"ok"|"partial"|"miss","note":"<qué dijeron las notas sobre este riesgo, o null si no se mencionó>"}`).join(',
-    ')}
-  ],
-  "followup": "<Si hay riesgos críticos sin evaluar, escribe aquí qué debería validarse antes de contratar. null si todo está cubierto>"
-}`;
+  const NL='\n';
+  const risks=(c.risks||[]).map((r,i)=>(i+1)+'. '+r).join(NL);
+  const qs=(c.qs||[]).map((q,i)=>(i+1)+'. '+q).join(NL);
+  const coverageSchema=(c.risks||[]).map(r=>'{"risk":"'+r.replace(/"/g,"'")+'","status":"ok|partial|miss","note":"descripcion o null"}'  ).join(', ');
+  const prompt=[
+    'Eres un experto en reclutamiento evaluando los resultados de una entrevista.',
+    '',
+    'CONTEXTO DEL CANDIDATO (ya analizado previamente, NO releas el CV):',
+    '- Nombre: '+c.name,
+    '- Puesto: '+(c.vacTitle||'No especificado'),
+    '- Score inicial del CV: '+c.score+'/100',
+    '- Riesgos identificados en el CV:',
+    risks,
+    '- Preguntas de screening recomendadas:',
+    qs,
+    '',
+    'NOTAS DEL RECRUITER DE LA ENTREVISTA:',
+    c.ivwNotes||'Sin notas',
+    '',
+    'TU TAREA:',
+    '1. Veredicto basado ÚNICAMENTE en las notas del recruiter.',
+    '2. Verifica si cada riesgo del CV fue abordado en las notas.',
+    '3. Identifica lo crítico que NO se evaluó.',
+    '',
+    'Responde SOLO con JSON válido (sin markdown):',
+    '{',
+    '  "verdict": "Contratar"|"Considerar"|"No contratar",',
+    '  "reasons": ["<razon concreta de las notas>","<razon>","<razon>"],',
+    '  "coverage": ['+coverageSchema+'],',
+    '  "followup": "<qué validar antes de contratar, o null si todo está cubierto>"',
+    '}'
+  ].join(NL);
+  return prompt;
 }
 
 async function analyzeInterview(id){
