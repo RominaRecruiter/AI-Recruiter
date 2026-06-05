@@ -326,16 +326,34 @@ body{font-family:var(--f);background:var(--white);color:var(--ink);font-size:13p
 
 
 /* ── STAGE TABS ──────────────────────────────────────────── */
-.tab-bar{display:flex;border-bottom:1px solid var(--ink-10);background:var(--white);flex-shrink:0}
-.tab-btn{flex:1;height:40px;border:none;background:transparent;font-size:11px;font-weight:600;font-family:var(--f);color:var(--ink-30);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
-.tab-btn:hover{color:var(--ink-50)}
-.tab-btn.on{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-bar{
+  display:flex;
+  background:var(--white);
+  border-bottom:1px solid var(--ink-10);
+  padding:0 4px;
+  flex-shrink:0;
+  gap:2px;
+}
+.tab-btn{
+  flex:1;height:44px;border:none;background:transparent;
+  font-size:11px;font-weight:600;font-family:var(--f);
+  color:var(--ink-30);cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:all .18s;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  white-space:nowrap;position:relative;
+}
+.tab-btn:hover{color:var(--ink-50);background:var(--ink-05)}
+.tab-btn.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
 .tab-btn.done{color:var(--pass)}
-.tab-btn .tab-dot{width:6px;height:6px;border-radius:50%;background:var(--pass);display:none}
+.tab-btn.done:not(.on){color:var(--pass)}
+.tab-dot{width:6px;height:6px;border-radius:50%;background:var(--pass);display:none;flex-shrink:0}
 .tab-btn.done .tab-dot{display:block}
+.tab-btn svg{flex-shrink:0;transition:transform .15s}
+.tab-btn.on svg{transform:scale(1.1)}
 
 /* Tab panels */
-.tab-panel{display:none;flex:1;overflow-y:auto;padding:13px 15px;flex-direction:column;gap:9px}
+.tab-panel{display:none;flex:1;overflow-y:auto;padding:14px 16px;flex-direction:column;gap:10px}
 .tab-panel.on{display:flex}
 
 /* Interview notes */
@@ -382,11 +400,11 @@ body{font-family:var(--f);background:var(--white);color:var(--ink);font-size:13p
 .btn-redo-ivw:hover{background:var(--purple-bg)}
 
 /* Feedback */
-.stars-row{display:flex;align-items:center;gap:3px;margin-bottom:11px}
-.star-btn{font-size:26px;background:none;border:none;cursor:pointer;transition:transform .15s var(--ease-back);color:var(--ink-10);line-height:1;padding:0 3px}
-.star-btn:hover{transform:scale(1.25)}
-.star-btn.active{color:var(--gold)}
-.star-label{font-size:11px;font-weight:600;color:var(--ink-50);margin-left:6px}
+.stars-row{display:flex;align-items:center;gap:2px;margin-bottom:14px;justify-content:center}
+.star-btn{font-size:32px;background:none;border:none;cursor:pointer;transition:transform .18s var(--ease-back),color .15s;color:var(--ink-10);line-height:1;padding:0 4px}
+.star-btn:hover{transform:scale(1.3);color:var(--gold)}
+.star-btn.active{color:var(--gold);transform:scale(1.05)}
+.star-label{font-size:12px;font-weight:600;color:var(--ink-50);margin-left:8px;font-style:italic}
 .fstatus-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px}
 .fstatus-btn{font-size:10px;font-weight:700;padding:5px 12px;border-radius:99px;border:1.5px solid var(--ink-10);background:transparent;color:var(--ink-50);cursor:pointer;font-family:var(--f);transition:all .15s}
 .fstatus-btn:hover{border-color:var(--ink-30);color:var(--ink)}
@@ -926,41 +944,49 @@ function renderDetail(c){
 
   det.innerHTML=`
   <!-- Hero always visible -->
-  <div style="padding:13px 15px;border-bottom:1px solid var(--ink-10);background:var(--white);flex-shrink:0">
-    <div style="display:flex;align-items:center;gap:11px;margin-bottom:12px">
+  <div style="padding:14px 16px 12px;border-bottom:1px solid var(--ink-10);background:var(--white);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
       <div class="rp-av">${ini}</div>
       <div style="flex:1;min-width:0">
         <div class="rp-name">${esc(c.name)}</div>
-        <div class="rp-role">${esc(c.role)}${c.exp?' · '+esc(c.exp):''}</div>
-        <div class="rp-loc">${esc(c.loc||'')}${c.phone?' · 📱 '+esc(c.phone):''}</div>
+        <div class="rp-role" style="margin-top:2px">${esc(c.role)}${c.exp?' <span style="color:var(--ink-30)">·</span> '+esc(c.exp):''}</div>
+        <div class="rp-loc" style="margin-top:2px">${esc(c.loc||'')}${c.phone?' <span style="background:var(--ink-05);border:1px solid var(--ink-10);border-radius:5px;padding:1px 7px;font-size:10px;font-weight:600;color:var(--ink-50);margin-left:4px">📱 '+esc(c.phone)+'</span>':''}</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px">
-      <div class="big-num" style="color:${sc}">${c.score}</div>
-      <div><div class="score-track"><div class="score-fill" style="width:${c.score}%;background:${sc}"></div></div><div class="score-verd">${vd}</div></div>
-      <span class="conf-tag ${ct}">${cl[c.conf]||'Parcial'}</span>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:56px;border-radius:14px;flex-shrink:0;background:${sc}15;border:2px solid ${sc}30">
+        <div class="big-num" style="color:${sc};font-size:26px">${c.score}</div>
+        <div style="font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:${sc};opacity:.7;margin-top:-2px">${c.tier==='pass'?'Pasa':c.tier==='review'?'Revisar':'Descartar'}</div>
+      </div>
+      <div style="flex:1">
+        <div class="score-track" style="height:6px;margin-bottom:5px"><div class="score-fill" style="width:${c.score}%;background:${sc}"></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="score-verd">${vd}</div>
+          <span class="conf-tag ${ct}" style="font-size:8px">${cl[c.conf]||'Parcial'}</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Stage tabs -->
   <div class="tab-bar" id="tabbar-${c.id}">
     <button class="tab-btn${startTab==='perfil'?' on':''}" onclick="switchTab('${c.id}','perfil')">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 10.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 10.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Perfil
     </button>
     <button class="tab-btn${startTab==='contactar'?' on':c.contacted?' done':''}" onclick="switchTab('${c.id}','contactar')">
       <div class="tab-dot"></div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1C3.69 1 1 3.69 1 7c0 1.06.28 2.06.77 2.92L1 13l3.08-.77A6 6 0 107 1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5 5.5c0-.28.22-.5.5-.5h3c.28 0 .5.22.5.5v2c0 .28-.22.5-.5.5H7.5L6 9.5V8H5.5a.5.5 0 01-.5-.5v-2z" stroke="currentColor" stroke-width="1.1"/></svg>
       Contactar
     </button>
     <button class="tab-btn${startTab==='interview'?' on':c.ivwResult?' done':''}" onclick="switchTab('${c.id}','interview')">
       <div class="tab-dot"></div>
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M4 4.5c0-.83.67-1.5 1.5-1.5h1c.83 0 1.5.67 1.5 1.5 0 .6-.35 1.1-.85 1.35L6 6.5V7.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="9" r=".6" fill="currentColor"/></svg>
+      <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M2 2h8a1 1 0 011 1v5a1 1 0 01-1 1H4L2 11V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M4 5h4M4 7h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
       Entrevista
     </button>
     <button class="tab-btn${startTab==='feedback'?' on':c.fbStars>0?' done':''}" onclick="switchTab('${c.id}','feedback')">
       <div class="tab-dot"></div>
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1l1.24 2.5 2.76.4-2 1.95.47 2.74L6 7.25 3.53 8.59 4 5.85 2 3.9l2.76-.4z"/></svg>
+      <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M6 1l1.2 2.4 2.8.4-2 2 .47 2.73L6 7.2 3.53 8.53 4 5.8 2 3.8l2.8-.4z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
       Feedback
     </button>
   </div>
@@ -981,10 +1007,13 @@ function renderDetail(c){
     <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-orange"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.1"/><path d="M4.5 4.5c0-.8.4-1.2 1-1.2s1 .4 1 1.2c0 .6-.4 1-.9 1.2V6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="5.5" cy="8" r=".5" fill="currentColor"/></svg>Preguntas de Screening</div></div><div class="sec-body">${c.qs.map((q,i)=>`<div class="q-item"><span class="q-num">${i+1}</span>${esc(q)}</div>`).join('')}</div></div>
     <div class="sec-card"><div class="sec-hd"><div class="sec-label" style="color:#128c7e"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>Mensaje WhatsApp</div><button class="cp-btn" onclick="cpText(this,'${et(c.wa)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.wa)}</div></div></div>
     <div class="sec-card"><div class="sec-hd"><div class="sec-label sl-ink"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="2.5" y="1.5" width="6" height="8" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M4 4h3M4 6h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Script de llamada</div><button class="cp-btn" onclick="cpText(this,'${et(c.call)}')">Copiar</button></div><div class="sec-body"><div class="msg-box">${esc(c.call)}</div></div></div>
-    ${waHref
-      ?`<a href="${waHref}" target="_blank" style="text-decoration:none" onclick="markContacted('${c.id}')"><button class="btn-wa" style="width:100%"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.12 1.528 5.843L0 24l6.336-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.578 9.578 0 01-4.924-1.356l-.352-.209-3.664.871.939-3.564-.228-.369A9.576 9.576 0 012.4 12C2.4 6.699 6.699 2.4 12 2.4S21.6 6.699 21.6 12 17.301 21.6 12 21.6z"/></svg>Abrir WhatsApp → Enviar</button></a>`
-      :`<button class="btn-wa nophone" style="width:100%" onclick="cpRaw('${et(c.wa)}')">Copiar mensaje WhatsApp</button>`
-    }
+    <div style="background:var(--pass-bg);border:1px solid var(--pass-ring);border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:11px;font-weight:600;color:var(--pass);margin-bottom:10px">${c.contacted?'✓ Ya contactado — el candidato está en Pasa':'Listo para contactar · se moverá a Pasa automáticamente'}</div>
+      ${waHref
+        ?`<a href="${waHref}" target="_blank" style="text-decoration:none;display:block" onclick="markContacted('${c.id}')"><button class="btn-wa" style="width:100%;height:46px;font-size:14px">${wa_svg}Abrir WhatsApp → Enviar</button></a>`
+        :`<button class="btn-wa nophone" style="width:100%;height:46px" onclick="cpRaw('${et(c.wa)}')">Copiar mensaje WhatsApp</button>`
+      }
+    </div>
   </div>
 
   <!-- TAB: ENTREVISTA -->
@@ -1008,11 +1037,15 @@ function renderDetail(c){
   </div>
 
   <!-- Footer always visible -->
-  <div class="rp-foot">
-    <div class="foot-grid">
-      <button class="btn-g save" onclick="addPipe('${c.id}')"><svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M1.5 1.5h10a.5.5 0 01.5.5v8l-4.5-3L4 10V2a.5.5 0 01.5-.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Pipeline</button>
-      <button class="btn-g" onclick="expCSV('${c.id}')"><svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v7M6.5 8L4.5 6M6.5 8L8.5 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.5 10v1.5A.5.5 0 002 12h9a.5.5 0 00.5-.5V10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>CSV</button>
-    </div>
+  <div style="padding:10px 16px;border-top:1px solid var(--ink-10);background:var(--white);flex-shrink:0;display:flex;gap:8px">
+    <button class="btn-g save" style="flex:1" onclick="addPipe('${c.id}')">
+      <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M1.5 1.5h10a.5.5 0 01.5.5v8l-4.5-3L4 10V2a.5.5 0 01.5-.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      Guardar en pipeline
+    </button>
+    <button class="btn-g" style="flex:1" onclick="expCSV('${c.id}')">
+      <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v7M6.5 8L4.5 6M6.5 8L8.5 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.5 10v1.5A.5.5 0 002 12h9a.5.5 0 00.5-.5V10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Exportar CSV
+    </button>
   </div>`;
   rp.appendChild(det);
 }
@@ -1215,11 +1248,18 @@ function fbHtml(c){
     return`<div style="padding:13px"><div class="fb-saved"><div class="fsv-stars">${[1,2,3,4,5].map(n=>`<span class="fsv-star${n<=c.fbStars?' filled':''}">★</span>`).join('')}</div>${c.fbStatus?`<div class="fsv-status">${esc(c.fbStatus)}</div>`:''} ${c.fbComment?`<div class="fsv-comment">${esc(c.fbComment)}</div>`:''}<button class="fsv-edit" onclick="editFb('${c.id}')">Editar feedback</button></div></div>`;
   }
   const stats=[{l:'Agendó entrevista',cls:'green'},{l:'No contestó',cls:'amber'},{l:'En proceso',cls:'amber'},{l:'Contratado',cls:'green'},{l:'Descartado',cls:'red'}];
-  return`<div style="padding:13px">
-    <div class="stars-row" id="stars-${c.id}">${[1,2,3,4,5].map(n=>`<button class="star-btn${n<=(c.fbStars||0)?' active':''}" onclick="setStar('${c.id}',${n})">★</button>`).join('')}<span class="star-label" id="slbl-${c.id}">${sLabels[c.fbStars||0]||'Toca para calificar'}</span></div>
-    <div class="fstatus-row">${stats.map(s=>`<button class="fstatus-btn${c.fbStatus===s.l?' sel '+s.cls:''}" onclick="setFbS('${c.id}','${s.l}','${s.cls}')">${s.l}</button>`).join('')}</div>
-    <textarea class="fb-textarea" id="fbtxt-${c.id}" placeholder="¿Cómo fue el contacto? ¿Qué encontraste en la llamada? Romi aprende de estas notas...">${esc(c.fbComment||'')}</textarea>
-    <button class="btn-save-fb" id="fbsave-${c.id}" onclick="saveFb('${c.id}')" ${!c.fbStars?'disabled':''}><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Guardar feedback</button>
+  return`<div style="display:flex;flex-direction:column;gap:12px">
+    <div style="background:var(--gold-light,#fffdf0);border:1px solid #f0e0a0;border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:10px">¿Cómo calificarías a este candidato?</div>
+      <div class="stars-row" id="stars-${c.id}">${[1,2,3,4,5].map(n=>`<button class="star-btn${n<=(c.fbStars||0)?' active':''}" onclick="setStar('${c.id}',${n})">★</button>`).join('')}</div>
+      <div class="star-label" id="slbl-${c.id}" style="margin:0;display:block">${sLabels[c.fbStars||0]||'Toca una estrella para calificar'}</div>
+    </div>
+    <div style="border:1px solid var(--ink-10);border-radius:12px;padding:14px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:10px">¿Qué pasó?</div>
+      <div class="fstatus-row">${stats.map(s=>`<button class="fstatus-btn${c.fbStatus===s.l?' sel '+s.cls:''}" onclick="setFbS('${c.id}','${s.l}','${s.cls}')">${s.l}</button>`).join('')}</div>
+      <textarea class="fb-textarea" id="fbtxt-${c.id}" placeholder="Notas adicionales: qué te gustó, qué te preocupó, por qué avanzó o no...">${esc(c.fbComment||'')}</textarea>
+      <button class="btn-save-fb" id="fbsave-${c.id}" onclick="saveFb('${c.id}')" ${!c.fbStars?'disabled':''}><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Guardar feedback</button>
+    </div>
   </div>`;
 }
 function setStar(id,n){
