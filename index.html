@@ -688,9 +688,9 @@ function dbToC(r){
     dbId:r.id,inPipeline:r.in_pipeline||false,
     viewed:false,contacted:r.contacted||false,
     fbStars:r.fb_stars!=null?r.fb_stars:0,fbStatus:r.fb_status||'',fbComment:r.fb_comment||'',
-    fbOutcome:r.fb_outcome||'',fbDeclineReason:r.fb_decline_reason||'',
+    fbOutcome:r.fb_outcome||'',fbDeclineReason:r.fb_decline_reason||'',fbRetention:r.fb_retention||'',
     ivwAnswers:r.interview_answers||{},ivwSummary:r.interview_summary||'',ivwEvals:r.interview_evals||{},
-    ivwNotes:r.interview_notes||'',ivwResult:r.interview_result||null,
+    ivwNotes:r.interview_notes||'',ivwResult:r.interview_result||null,icebreaker:r.icebreaker||null,
     stage:r.stage||'screening',
   };
 }
@@ -782,13 +782,22 @@ function closeVacDd(){document.getElementById('vac-dd').classList.remove('open')
 document.addEventListener('click',e=>{if(!document.getElementById('vac-dd-wrap').contains(e.target))closeVacDd();});
 
 function openNewVacModal(e){if(e)e.stopPropagation();
-  document.getElementById('vi-t').value='';document.getElementById('vi-co').value='';document.getElementById('vi-loc').value='';document.getElementById('vi-desc').value='';
+  // Clear editing state — this is a NEW vacancy
+  window._editingVacId = null;
+  document.getElementById('vi-t').value='';document.getElementById('vi-co').value='';
+  document.getElementById('vi-loc').value='';document.getElementById('vi-desc').value='';
   document.querySelectorAll('#treqs .tchip').forEach(c=>c.remove());
+  // Update modal title to say "Nueva"
+  document.querySelector('#m-vac .modal-title').textContent='Nueva vacante';
   closeVacDd();openModal('m-vac');
 }
 async function saveVac(){
   const reqs=[...document.querySelectorAll('#treqs .tchip')].map(c=>c.dataset.v);
-  X.vac={t:document.getElementById('vi-t').value.trim(),co:document.getElementById('vi-co').value.trim(),loc:document.getElementById('vi-loc').value.trim(),reqs,desc:document.getElementById('vi-desc').value.trim(),dbId:X.vac?.dbId};
+  // Only keep dbId if we're EDITING an existing vacancy (editingVacId is set)
+  // Never inherit dbId from currently active vacancy when creating new
+  const existingId = window._editingVacId || null;
+  window._editingVacId = null; // clear after use
+  X.vac={t:document.getElementById('vi-t').value.trim(),co:document.getElementById('vi-co').value.trim(),loc:document.getElementById('vi-loc').value.trim(),reqs,desc:document.getElementById('vi-desc').value.trim(),dbId:existingId};
   closeModal('m-vac');
   const nid=await saveVacToDb(X.vac);if(nid){X.vac.dbId=nid;S.s('last_vac',nid);}
   await loadVacs();renderVacDisplay();updateGuide();showToast('Vacante guardada ✓');
@@ -838,12 +847,14 @@ function buildSumPrompt(c,answers){
   const qa=c.qs.map((q,i)=>`P${i+1}: ${q}\nR${i+1}: ${answers[i]||'Sin respuesta'}`).join('\n\n');
   return`Resume y evalúa esta entrevista completa.\nCandidato: ${c.name}\nVacante: ${c.vacTitle||'No especificada'}\nScore inicial: ${c.score}/100\n\n${qa}\n\nJSON:\n{"overall_rating":"Contratar"|"Considerar"|"Rechazar","key_finding":"<hallazgo más importante en 1 oración>","summary":"<3-4 oraciones del desempeño>","recommendation":"<recomendación concreta: qué hacer y por qué>"}`;}
 
-async function callClaude(prompt){
+async function callClaude(prompt, expectJson=true){
   const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':S.key(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:S.model(),max_tokens:1500,messages:[{role:'user',content:prompt}]})});
   if(!r.ok){const e=await r.json().catch(()=>({}));if(r.status===401)throw new Error('API key inválida');if(r.status===429)throw new Error('Límite alcanzado');throw new Error(`Error ${r.status}`);}
   const d=await r.json();
-  const raw=(d?.content?.[0]?.text||'').replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
-  try{return JSON.parse(raw);}catch{const m=raw.match(/\{[\s\S]*\}/);if(m)return JSON.parse(m[0]);throw new Error('Respuesta inesperada');}
+  const raw=(d?.content?.[0]?.text||'').trim();
+  if(!expectJson)return raw;
+  const clean=raw.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  try{return JSON.parse(clean);}catch{const m=clean.match(/\{[\s\S]*\}/);if(m)return JSON.parse(m[0]);throw new Error('Respuesta inesperada');}
 }
 
 // ANALYZE
@@ -1033,16 +1044,36 @@ function renderDetail(c){
   <!-- TAB: ENTREVISTA -->
   <div class="tab-panel${startTab==='interview'?' on':''}" id="tab-interview-${c.id}">
     ${c.ivwResult ? renderIvwResult(c) : `
-    <div class="ivw-qs-ref">
-      <div class="ivw-qs-ref-label">Preguntas que Romi generó — úsalas como guía</div>
-      ${c.qs.map(q=>`<div class="ivw-qs-ref-item">${esc(q)}</div>`).join('')}
+
+    <!-- Rompe-hielo -->
+    <div style="background:var(--white);border:1px solid var(--ink-10);border-radius:13px;overflow:hidden">
+      <div style="padding:9px 13px;background:var(--blue-dim);border-bottom:1px solid var(--blue-ring);display:flex;align-items:center;gap:7px">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="color:var(--blue)"><path d="M6.5 1a5.5 5.5 0 100 11A5.5 5.5 0 006.5 1z" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 5c0-1.1.9-2 2-2s2 .9 2 2c0 .8-.5 1.5-1.2 1.8V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6.5" cy="9.5" r=".7" fill="currentColor"/></svg>
+        <span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue)">Rompe-hielo</span>
+      </div>
+      <div style="padding:11px 13px" id="ice-wrap-${c.id}">${renderIcebreakerHtml(c)}</div>
     </div>
-    <div class="ivw-hint">Escribe libremente tus observaciones. Romi cruzará tus notas contra los <strong>${c.risks.length} riesgos</strong> que identificó en el CV y te dará un veredicto.</div>
-    <textarea class="ivw-notes-ta" id="ivwnotes-${c.id}" placeholder="Ej: Me gustó el perfil. Cuando le pregunté sobre su salida de Foundever dijo que fue por reestructura. Demostró paciencia con clientes difíciles. Busca $13,000...">${esc(c.ivwNotes||'')}</textarea>
-    <button class="btn-analyze-ivw" id="ivwanalyzebtn-${c.id}" onclick="analyzeInterview('${c.id}')">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l1.2 3.1 3.3.48-2.4 2.33.57 3.3L7 9.1l-2.67 1.61.57-3.3L2.5 5.08l3.3-.48z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor"/></svg>
-      Analizar entrevista con Romi
-    </button>`}
+
+    <!-- Preguntas de guía -->
+    <div style="background:var(--purple-bg);border:1px solid var(--purple-ring);border-radius:13px;padding:13px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);margin-bottom:9px">Preguntas de guía</div>
+      ${c.qs.map((q,i)=>`<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid rgba(107,63,160,.12);font-size:12px;font-weight:500;color:var(--ink-80);line-height:1.5"><span style="min-width:20px;height:20px;border-radius:50%;background:var(--purple);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${i+1}</span>${esc(q)}</div>`).join('')}
+    </div>
+
+    <!-- Notas -->
+    <div style="border:1px solid var(--ink-10);border-radius:13px;overflow:hidden">
+      <div style="padding:9px 13px;background:var(--ink-05);border-bottom:1px solid var(--ink-10);font-size:11px;font-weight:600;color:var(--ink-50);display:flex;align-items:center;gap:6px">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2h8a1 1 0 011 1v5a1 1 0 01-1 1H4L2 11V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        Tus notas de la entrevista
+      </div>
+      <div style="padding:11px 13px">
+        <textarea class="ivw-notes-ta" id="ivwnotes-${c.id}" placeholder="Escribe libremente: qué te gustó, cómo respondió a los riesgos, expectativas salariales, disponibilidad..." rows="7">${esc(c.ivwNotes||'')}</textarea>
+        <button class="btn-analyze-ivw" id="ivwanalyzebtn-${c.id}" onclick="analyzeInterview('${c.id}')">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l1.2 3.1 3.3.48-2.4 2.33.57 3.3L7 9.1l-2.67 1.61.57-3.3L2.5 5.08l3.3-.48z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor"/></svg>
+          Analizar con Romi
+        </button>
+      </div>
+    </div>`}
   </div>
 
   <!-- TAB: FEEDBACK -->
@@ -1116,11 +1147,288 @@ function renderIvwResult(c){
 }
 
 
+function buildIcebreakerPrompt(c){
+  const NL='\n';
+  const lines=[
+    'Eres un asistente de reclutamiento. Tu tarea es personalizar un guión de apertura para una entrevista.',
+    '',
+    'GUIÓN BASE (NO cambies la estructura, solo agrega las 2 líneas de personalización):',
+    '"Hola [NOMBRE], soy Arturo Quezada, Director de RH. Antes que nada quiero agradecerte el tiempo que te tomas conmigo para poder platicar.",',
+    '"En Evolve CX somos una empresa dedicada a ayudar startups a lograr sus objetivos operacionales — esto lo hacemos por medio de consultoría, mejorando procesos, políticas y producto.",',
+    '"Lo que nos hace diferentes a un call center tradicional es que trabajamos directamente con los gerentes de campaña para hacer cambios de manera inmediata, lo que significa que siempre estamos mejorando y haciendo cosas nuevas.",',
+    '"También tenemos mucho crecimiento interno — al día de hoy el 60% de nuestros admins son personas que empezaron como agentes. Buscamos desarrollar talento para que puedan hacer una carrera con nosotros."',
+    '',
+    'CANDIDATO:',
+    '- Nombre: '+c.name,
+    '- Puesto actual: '+c.role,
+    '- Experiencia relevante: '+(c.strengths||[]).slice(0,2).join(', '),
+    '- Empresa(s) anterior(es) mencionadas en CV: '+(c.cvText||'').substring(0,300),
+    '',
+    'TU TAREA:',
+    '1. Escribe el guión completo con [NOMBRE] reemplazado por el nombre real del candidato.',
+    '2. Después del párrafo de EvolveCX, agrega UNA línea que conecte específicamente la experiencia del candidato con lo que describiste. Ejemplo: "Y precisamente por eso me llamó tu perfil — alguien que ya trabajó manejando [algo específico de su CV] ya entiende lo que es trabajar en un ambiente que siempre está evolucionando."',
+    '3. Cierra con UNA pregunta abierta y cálida basada en algo concreto de su CV — que los invite a hablar antes de empezar el screening formal. No preguntes sobre el puesto todavía.',
+    '',
+    'Responde SOLO con el guión listo para leer, sin explicaciones ni markdown. Usa un tono cálido y profesional. Máximo 200 palabras.'
+  ];
+  return lines.join(NL);
+}
+
+async function generateIcebreaker(id){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  const btn=document.getElementById('icebtn-'+id);
+  if(btn){btn.disabled=true;btn.innerHTML='<div class="proc-spinner" style="width:13px;height:13px;border-top-color:#fff"></div>Generando...';}
+  try{
+    const res=await callClaude(buildIcebreakerPrompt(c), false);
+    // res is a string (plain text, not JSON)
+    const text=typeof res==='string'?res:(res.content||res.text||JSON.stringify(res));
+    c.icebreaker=text;
+    await updCand(c,{interview_notes:c.ivwNotes||''});
+    // Re-render the icebreaker section
+    const wrap=document.getElementById('ice-wrap-'+id);
+    if(wrap)wrap.innerHTML=renderIcebreakerHtml(c);
+    showToast('Rompe-hielo generado ✓');
+  }catch(e){
+    if(btn){btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5l1 2.6 2.7.39-1.95 1.9.46 2.71L6.5 7.85l-2.21 1.25.46-2.71-1.95-1.9 2.7-.39z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Generar rompe-hielo';}
+    showToast('Error: '+e.message,true);
+  }
+}
+
+function renderIcebreakerHtml(c){
+  if(!c.icebreaker){
+    return '<div style="text-align:center;padding:16px 0">'
+      +'<div style="font-size:12px;font-weight:500;color:var(--ink-50);margin-bottom:12px;line-height:1.6">Romi genera un guión de apertura personalizado<br>basado en el CV de '+esc(c.name)+'</div>'
+      +'<button data-id="'+c.id+'" onclick="generateIcebreaker(this.dataset.id)" class="btn-analyze-ivw" style="background:var(--blue)">'
+      +'<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5l1 2.6 2.7.39-1.95 1.9.46 2.71L6.5 7.85l-2.21 1.25.46-2.71-1.95-1.9 2.7-.39z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>'
+      +'Generar rompe-hielo'
+      +'</button>'
+      +'</div>';
+  }
+  return '<div style="display:flex;flex-direction:column;gap:9px">'
+    +'<div style="background:var(--blue-dim);border:1px solid var(--blue-ring);border-radius:10px;padding:13px">'
+    +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">'
+    +'<span>Guión de apertura</span>'
+    +'<button data-id="'+c.id+'" onclick="copyIcebreaker(this.dataset.id,this)" style="font-size:10px;font-weight:700;padding:2px 10px;border-radius:6px;border:1px solid var(--blue-ring);background:var(--white);color:var(--blue);cursor:pointer;font-family:var(--f)">Copiar</button>'
+    +'</div>'
+    +'<div style="font-size:12px;font-weight:500;color:var(--ink-80);line-height:1.75;white-space:pre-wrap">'+esc(c.icebreaker)+'</div>'
+    +'</div>'
+    +'<button data-id="'+c.id+'" onclick="regenerateIcebreaker(this.dataset.id)" style="font-size:11px;font-weight:600;padding:7px;border-radius:8px;border:1px solid var(--blue-ring);background:transparent;color:var(--blue);cursor:pointer;font-family:var(--f)">↻ Regenerar guión</button>'
+    +'</div>';
+}
+
+
+
+// ── FEEDBACK ──────────────────────────────────────────────────────────────
+const sLabels=['','Muy malo','Regular','Bueno','Muy bueno','Excelente'];
+
+function fbHtml(c){
+  if(c.fbOutcome&&!c._editFb){
+    const ocStyle={
+      'Contratado':'background:var(--pass-bg);color:var(--pass);border:1px solid var(--pass-ring)',
+      'Guardado para futuro':'background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-ring)',
+      'No avanzó':'background:var(--fail-bg);color:var(--fail);border:1px solid var(--fail-ring)'
+    }[c.fbOutcome]||'background:var(--ink-05);color:var(--ink-50);border:1px solid var(--ink-10)';
+    return `<div style="display:flex;flex-direction:column;gap:10px;padding:13px">
+      <div style="background:var(--ink-05);border:1px solid var(--ink-10);border-radius:12px;padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-30)">Calificación</div>
+          <div style="display:flex;gap:2px">${[1,2,3,4,5].map(n=>`<span style="font-size:18px;color:${n<=(c.fbStars||0)?'var(--gold)':'var(--ink-10)'}">★</span>`).join('')}</div>
+        </div>
+        <div style="display:inline-block;padding:5px 14px;border-radius:99px;font-size:12px;font-weight:600;${ocStyle}">${esc(c.fbOutcome)}</div>
+        ${c.fbDeclineReason?`<div style="margin-top:8px;font-size:11px;color:var(--ink-50);font-style:italic">Razón: ${esc(c.fbDeclineReason)}</div>`:''}
+        ${c.fbRetention?`<div style="margin-top:6px;font-size:11px;color:var(--ink-50)">⏱ Duración: ${esc(c.fbRetention)}</div>`:''}
+        ${c.fbComment?`<div style="margin-top:8px;font-size:12px;color:var(--ink-80);line-height:1.6;padding-top:8px;border-top:1px solid var(--ink-10)">${esc(c.fbComment)}</div>`:''}
+      </div>
+      <button class="btn-redo-ivw" onclick="editFb('${c.id}')">Editar feedback</button>
+    </div>`;
+  }
+  const outcomes=[
+    {l:'Contratado',icon:'✅'},{l:'Guardado para futuro',icon:'🔄'},{l:'No avanzó',icon:'❌'}
+  ];
+  const declineReasons=['No pasó la entrevista','Expectativa salarial alta','Ya tenía otra oferta','Vacante cerrada','No disponible','Otro motivo'];
+  const showDecline=c.fbOutcome==='No avanzó';
+  const showRetention=c.fbOutcome==='Contratado';
+  return `<div style="display:flex;flex-direction:column;gap:12px;padding:13px">
+    <div style="background:#fffdf0;border:0.5px solid #f0e0a0;border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:10px">Califica al candidato</div>
+      <div class="stars-row" id="stars-${c.id}">
+        ${[1,2,3,4,5].map(n=>`<button class="star-btn${n<=(c.fbStars||0)?' active':''}" onclick="setStar('${c.id}',${n})">★</button>`).join('')}
+      </div>
+      <div class="star-label" id="slbl-${c.id}" style="display:block;margin:0">${sLabels[c.fbStars||0]||'Toca una estrella para calificar'}</div>
+    </div>
+    <div style="border:1px solid var(--ink-10);border-radius:12px;padding:13px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:10px">¿Cómo terminó el proceso?</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+        ${outcomes.map(o=>`<button onclick="setOutcome('${c.id}','${o.l}')" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:9px;border:1.5px solid ${c.fbOutcome===o.l?'var(--blue)':'var(--ink-10)'};background:${c.fbOutcome===o.l?'var(--blue-dim)':'transparent'};cursor:pointer;font-family:var(--f);text-align:left;transition:all .15s"><span style="font-size:16px">${o.icon}</span><span style="font-size:12px;font-weight:600;color:${c.fbOutcome===o.l?'var(--blue)':'var(--ink-80)'}">${o.l}</span></button>`).join('')}
+      </div>
+      ${showDecline?`<div style="margin-bottom:12px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:8px">¿Por qué razón?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">${declineReasons.map(r=>`<button onclick="setDeclineReason('${c.id}','${r}')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;border:1.5px solid ${c.fbDeclineReason===r?'var(--fail-ring)':'var(--ink-10)'};background:${c.fbDeclineReason===r?'var(--fail-bg)':'transparent'};color:${c.fbDeclineReason===r?'var(--fail)':'var(--ink-50)'};cursor:pointer;font-family:var(--f)">${r}</button>`).join('')}</div>
+      </div>`:''}
+      ${showRetention?`<div style="margin-bottom:12px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:8px">⏱ ¿Cuánto tiempo duró en el puesto?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">${['Menos de 1 mes','1-3 meses','3-6 meses','6-12 meses','Más de 1 año'].map(r=>`<button onclick="setRetention('${c.id}','${r}')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;border:1.5px solid ${c.fbRetention===r?'var(--blue-ring)':'var(--ink-10)'};background:${c.fbRetention===r?'var(--blue-dim)':'transparent'};color:${c.fbRetention===r?'var(--blue)':'var(--ink-50)'};cursor:pointer;font-family:var(--f)">${r}</button>`).join('')}</div>
+      </div>`:''}
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:7px">Notas <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-30)">(Romi aprende de esto)</span></div>
+      <textarea class="fb-textarea" id="fbtxt-${c.id}" placeholder="Ej: Excelente candidato. Reactivar en 3 meses. Muy buena actitud durante todo el proceso...">${esc(c.fbComment||'')}</textarea>
+      <button class="btn-save-fb" id="fbsave-${c.id}" onclick="saveFb('${c.id}')" ${!c.fbStars||!c.fbOutcome?'disabled':''}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Guardar feedback
+      </button>
+    </div>
+  </div>`;
+}
+
+function setStar(id,n){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.fbStars=n;
+  document.querySelectorAll('#stars-'+id+' .star-btn').forEach((b,i)=>b.classList.toggle('active',i<n));
+  const l=document.getElementById('slbl-'+id);if(l)l.textContent=sLabels[n];
+  checkFbReady(id);
+}
+function checkFbReady(id){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  const sv=document.getElementById('fbsave-'+id);
+  if(sv)sv.disabled=!(c.fbStars>0&&c.fbOutcome);
+}
+function setOutcome(id,outcome){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.fbOutcome=outcome;
+  const body=document.getElementById('fbbody-'+id);
+  if(body)body.innerHTML=fbHtml(c);
+}
+function setDeclineReason(id,reason){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.fbDeclineReason=reason;
+  const body=document.getElementById('fbbody-'+id);
+  if(body)body.innerHTML=fbHtml(c);
+}
+function setRetention(id,val){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.fbRetention=val;
+  const body=document.getElementById('fbbody-'+id);
+  if(body)body.innerHTML=fbHtml(c);
+}
+function setFbS(id,status,cls){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.fbStatus=status;
+  if(status==='Contratado'){c.tier='pass';updCand(c,{tier:'pass'});renderCands();updateStats();}
+}
+async function saveFb(id){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.fbComment=document.getElementById('fbtxt-'+id)?.value||'';
+  c._editFb=false;
+  if(c.fbOutcome==='Contratado')c.tier='pass';
+  else if(c.fbOutcome==='No avanzó')c.tier='fail';
+  else if(c.fbOutcome==='Guardado para futuro')c.inPipeline=true;
+  await updCand(c,{fb_stars:c.fbStars,fb_status:c.fbOutcome||'',fb_comment:c.fbComment,fb_outcome:c.fbOutcome||'',fb_decline_reason:c.fbDeclineReason||'',fb_retention:c.fbRetention||'',tier:c.tier,in_pipeline:c.inPipeline||false});
+  if(c.fbOutcome==='Guardado para futuro'&&!X.pipeline.find(p=>p.id===id)){
+    c.savedAt=new Date().toISOString();
+    await updCand(c,{in_pipeline:true,saved_at:c.savedAt});
+    X.pipeline.unshift(c);updatePipeBadge();
+  }
+  const body=document.getElementById('fbbody-'+id);if(body)body.innerHTML=fbHtml(c);
+  renderCands();updateStats();updateGuide();showToast('Feedback guardado ✓');
+}
+function editFb(id){const c=X.cands.find(x=>x.id===id);if(!c)return;c._editFb=true;const body=document.getElementById('fbbody-'+id);if(body)body.innerHTML=fbHtml(c);}
+
+// ── CV TOGGLE ─────────────────────────────────────────────────────────────
+function toggleCv(id){
+  const body=document.getElementById('cvbody-'+id),btn=document.getElementById('cvtog-'+id);
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  if(body.classList.contains('expanded')){body.classList.remove('expanded');body.textContent=c.cvText?.substring(0,500)+(c.cvText?.length>500?'\n...':'');btn.textContent='Ver más';}
+  else{body.classList.add('expanded');body.textContent=c.cvText||'No disponible';btn.textContent='Ver menos';}
+}
+
+// ── WA ────────────────────────────────────────────────────────────────────
+function markContacted(id){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.contacted=true;
+  if(c.tier!=='pass'){c.tier='pass';updCand(c,{tier:'pass',contacted:true});}else{updCand(c,{contacted:true});}
+  renderCands();updateStats();updateGuide();
+  const bar=document.getElementById('tabbar-'+id);
+  if(bar){const btns=bar.querySelectorAll('.tab-btn');if(btns[1])btns[1].classList.add('done');}
+  showToast('WhatsApp abierto · candidato en Pasa ✓');
+}
+function renderIdle(){
+  const old=document.getElementById('rp-det');if(old)old.remove();
+  document.getElementById('rp-idle').classList.remove('hidden');
+  document.getElementById('chk-items').innerHTML='<div class="chk-item"><div class="chk-check"></div>Selecciona un candidato para comenzar</div>';
+}
+
+// ── PIPELINE ──────────────────────────────────────────────────────────────
+async function addPipe(id){
+  const c=X.cands.find(x=>x.id===id);if(!c)return;
+  c.inPipeline=true;c.savedAt=new Date().toISOString();
+  await updCand(c,{in_pipeline:true,saved_at:c.savedAt});
+  if(!X.pipeline.find(p=>p.id===id))X.pipeline.unshift(c);
+  updatePipeBadge();renderPipe();showToast(esc(c.name)+' → pipeline ✓');
+}
+function updatePipeBadge(){document.getElementById('nb2').textContent=X.pipeline.length;}
+function renderPipe(){
+  const list=document.getElementById('pl');list.querySelectorAll('.prow').forEach(r=>r.remove());
+  document.getElementById('pe').style.display=X.pipeline.length?'none':'';
+  const sc={pass:'var(--pass)',review:'var(--warn)',fail:'var(--fail)'};
+  X.pipeline.forEach(c=>{
+    const d=document.createElement('div');d.className='prow';
+    const ini=c.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
+    const isMatch=c.vacTitle&&c.vacTitle===X.vac?.t;
+    d.innerHTML=`<div class="prow-av">${ini}</div><div class="prow-info"><div class="prow-name">${esc(c.name)}${isMatch?' <span class="rebadge">♻ Coincide</span>':''}</div><div class="prow-meta">${esc(c.role||'')} · ${esc(c.vacTitle||'Sin vacante')} · ${fd(c.savedAt||c.analyzedAt)}</div></div><div class="prow-right"><div class="prow-score" style="color:${sc[c.tier]||'var(--ink-30)'}">${c.score}</div><button class="prow-move" onclick="openMoveModal('${c.id}')">→ Mover</button><button class="prow-remove" onclick="removeFromPipe('${c.id}')" title="Quitar">✕</button></div>`;
+    list.appendChild(d);
+  });
+}
+function openMoveModal(candId){
+  X.movingId=candId;
+  const c=X.pipeline.find(x=>x.id===candId);
+  document.getElementById('m-move-sub').textContent=c?`Mover a ${c.name} a otra vacante`:'Elige la vacante destino';
+  const list=document.getElementById('m-move-list');
+  const others=X.allVacs.filter(v=>v.id!==X.vac?.dbId);
+  list.innerHTML=others.length
+    ?others.map(v=>`<div class="mvac-item" onclick="moveTo('${candId}','${v.id}','${esc(v.title)}')"><div class="mvac-item-name">${esc(v.title)}</div><div class="mvac-item-meta">${esc(v.company||'')}${v.location?' · '+esc(v.location):''}</div></div>`).join('')
+    :'<p style="font-size:12px;color:var(--ink-50);text-align:center;padding:20px">No hay otras vacantes creadas aún.</p>';
+  openModal('m-move');
+}
+async function moveTo(candId,vacId,vacTitle){
+  const c=X.pipeline.find(x=>x.id===candId);
+  if(c){c.vacTitle=vacTitle;c.inPipeline=false;await updCand(c,{vacancy_title:vacTitle,in_pipeline:false});X.pipeline=X.pipeline.filter(x=>x.id!==candId);updatePipeBadge();renderPipe();}
+  closeModal('m-move');showToast(`Movido a "${vacTitle}" ✓`);
+}
+async function removeFromPipe(candId){
+  const c=X.pipeline.find(x=>x.id===candId);
+  if(c){c.inPipeline=false;await updCand(c,{in_pipeline:false});}
+  X.pipeline=X.pipeline.filter(x=>x.id!==candId);updatePipeBadge();renderPipe();showToast('Quitado del pipeline');
+}
+const fd=iso=>iso?new Date(iso).toLocaleDateString('es-MX',{day:'numeric',month:'short'}):'';
+
+// ── VIEW SWITCH ───────────────────────────────────────────────────────────
+function setView(v,btn){
+  X.view=v;document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
+  const tv=document.getElementById('tv'),pv=document.getElementById('pv'),fr=document.getElementById('frow'),st=document.getElementById('steps'),gt=document.getElementById('guide');
+  if(v==='triage'){tv.classList.remove('hidden');pv.classList.add('hidden');fr.style.display='';st.style.display='';gt.style.display='';document.getElementById('ct-t').textContent='Triaje de CVs';renderCands();}
+  else{tv.classList.add('hidden');pv.classList.remove('hidden');fr.style.display='none';st.style.display='none';gt.style.display='none';document.getElementById('ct-t').textContent='Pipeline de talento';document.getElementById('ct-s').textContent='Candidatos guardados';renderPipe();}
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+const cleanPhone=p=>{const c=p.replace(/\D/g,'');return c.startsWith('52')?c:'52'+c;};
+function et(t){try{return btoa(unescape(encodeURIComponent(t||'')));}catch{return '';}}
+function dt(b){try{return decodeURIComponent(escape(atob(b)));}catch{return '';}}
+function cpText(btn,enc){const t=dt(enc);navigator.clipboard.writeText(t).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});btn.textContent='✓ Copiado';btn.classList.add('ok');setTimeout(()=>{btn.textContent='Copiar';btn.classList.remove('ok');},2000);showToast('Copiado');}
+function cpRaw(enc){const t=typeof enc==='string'&&enc.length<2000?dt(enc):enc;navigator.clipboard.writeText(t).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});showToast('Copiado ✓');}
+function copyIcebreaker(id,btn){const c=X.cands.find(x=>x.id===id);if(!c||!c.icebreaker)return;navigator.clipboard.writeText(c.icebreaker).catch(()=>{});if(btn){btn.textContent='✓ Copiado';setTimeout(()=>btn.textContent='Copiar',2000);}showToast('Guión copiado ✓');}
+function expCSV(id){const c=X.cands.find(x=>x.id===id);if(!c)return;const rows=[['Nombre','Puesto','Exp.','Ubicación','Teléfono','Score','Nivel','Razón','Fortalezas','Riesgos','Rec.','Stars','Outcome','Feedback','Retención'],[c.name,c.role,c.exp,c.loc,c.phone||'',c.score,c.tier,c.oneLiner,(c.strengths||[]).join(' | '),(c.risks||[]).join(' | '),c.rec,c.fbStars||0,c.fbOutcome||'',c.fbComment||'',c.fbRetention||'']];const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));a.download=`romi_${c.name.replace(/\s+/g,'_')}.csv`;a.click();showToast('CSV exportado');}
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function chk(){if(!S.key()){openModal('m-cfg');showToast('Agrega tu API key primero',true);return false;}if(!X.vac){showToast('Selecciona una vacante primero',true);return false;}return true;}
+function saveCfg(){const k=document.getElementById('ck').value.trim();if(k)S.setKey(k);S.setModel(document.getElementById('cm').value);updateKeyLed();closeModal('m-cfg');showToast('Guardado ✓');}
+function updateKeyLed(){document.getElementById('kled').className='kled '+(S.key()?'ok':'no');}
+let tt;
+function showToast(msg,isErr=false){const t=document.getElementById('toast'),m=document.getElementById('tmsg'),dot=document.getElementById('tdot');m.textContent=msg;dot.className='tdot '+(isErr?'err':'');t.classList.remove('off');clearTimeout(tt);tt=setTimeout(()=>t.classList.add('off'),isErr?4500:2800);}
+
+// ── INTERVIEW ANALYSIS ────────────────────────────────────────────────────
 function buildAnalyzePrompt(c){
   const NL='\n';
   const risks=(c.risks||[]).map((r,i)=>(i+1)+'. '+r).join(NL);
   const qs=(c.qs||[]).map((q,i)=>(i+1)+'. '+q).join(NL);
-  const coverageSchema=(c.risks||[]).map(r=>'{"risk":"'+r.replace(/"/g,"'")+'","status":"ok|partial|miss","note":"descripcion o null"}'  ).join(', ');
+  const coverageSchema=(c.risks||[]).map(r=>'{"risk":"'+r.replace(/"/g,"'")+'","status":"ok|partial|miss","note":"descripcion o null"}').join(', ');
   const prompt=[
     'Eres un experto en reclutamiento evaluando los resultados de una entrevista.',
     '',
@@ -1152,355 +1460,58 @@ function buildAnalyzePrompt(c){
   return prompt;
 }
 
+function renderIvwResult(c){
+  const r=c.ivwResult;if(!r)return'';
+  const vcls={Contratar:'hire',Considerar:'consider','No contratar':'reject'}[r.verdict]||'consider';
+  const vcolor={hire:'var(--pass)',consider:'var(--warn)',reject:'var(--fail)'}[vcls];
+  const vemoji={hire:'✅',consider:'⚠️',reject:'❌'}[vcls];
+  const reasonsHtml=(r.reasons||[]).map(reason=>'<div class="verdict-reason">'+esc(reason)+'</div>').join('');
+  const coverageHtml=(r.coverage||[]).map(function(item){
+    const cls=item.status==='ok'?'ok':item.status==='partial'?'warn':'miss';
+    const icon=item.status==='ok'?'✓':item.status==='partial'?'~':'✗';
+    const noteStr=item.note?' — '+esc(item.note):'';
+    const missTag=item.status==='miss'?' <span style="color:var(--fail);font-weight:700">No evaluado</span>':'';
+    return '<div class="cov-item"><div class="cov-icon '+cls+'">'+icon+'</div><div><strong>'+esc(item.risk)+'</strong>'+noteStr+missTag+'</div></div>';
+  }).join('');
+  const followupHtml=r.followup?'<div class="followup-card"><div class="followup-lbl">⚠ Pendiente de validar</div><div class="followup-text">'+esc(r.followup)+'</div></div>':'';
+  const notesHtml=c.ivwNotes?'<div style="background:var(--ink-05);border-radius:9px;padding:12px 13px"><div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-30);margin-bottom:6px">TUS NOTAS</div><div style="font-size:11px;color:var(--ink-50);line-height:1.65;white-space:pre-wrap">'+esc(c.ivwNotes)+'</div></div>':'';
+  return '<div style="display:flex;flex-direction:column;gap:9px">'
+    +'<div class="verdict-card '+vcls+'">'
+    +'<div class="verdict-emoji">'+vemoji+'</div>'
+    +'<div class="verdict-word '+vcls+'">'+esc(r.verdict||'')+'</div>'
+    +'<div class="verdict-reasons">'+reasonsHtml+'</div>'
+    +'</div>'
+    +'<div class="coverage-card"><div class="coverage-hd">Cobertura de riesgos del CV</div><div class="coverage-items">'+coverageHtml+'</div></div>'
+    +followupHtml
+    +notesHtml
+    +'<button data-id="'+c.id+'" onclick="redoInterview(this.dataset.id)" class="btn-redo-ivw">Editar notas y re-analizar</button>'
+    +'</div>';
+}
+
 async function analyzeInterview(id){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   const notes=document.getElementById('ivwnotes-'+id)?.value||'';
   if(!notes.trim()){showToast('Escribe tus notas de la entrevista primero',true);return;}
   c.ivwNotes=notes;
   const btn=document.getElementById('ivwanalyzebtn-'+id);
-  if(btn){btn.disabled=true;btn.innerHTML='<div class="proc-spinner" style="border-top-color:#fff;width:14px;height:14px"></div>Analizando entrevista...';}
+  if(btn){btn.disabled=true;btn.innerHTML='<div class="proc-spinner" style="width:14px;height:14px;border-top-color:#fff"></div>Analizando...';}
   try{
     const res=await callClaude(buildAnalyzePrompt(c));
     c.ivwResult=res;
-    // Save to Supabase
     await updCand(c,{interview_notes:notes,interview_result:res});
-    // Re-render detail
-    renderDetail(c);
-    updateGuide();
-    showToast('Entrevista analizada ✓');
+    renderDetail(c);updateGuide();showToast('Entrevista analizada ✓');
   }catch(e){
-    if(btn){btn.disabled=false;btn.innerHTML='<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l1.2 3.1 3.3.48-2.4 2.33.57 3.3L7 9.1l-2.67 1.61.57-3.3L2.5 5.08l3.3-.48z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor"/></svg>Analizar entrevista con Romi';}
+    if(btn){btn.disabled=false;btn.innerHTML='<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l1.2 3.1 3.3.48-2.4 2.33.57 3.3L7 9.1l-2.67 1.61.57-3.3L2.5 5.08l3.3-.48z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor"/></svg>Analizar con Romi';}
     showToast('Error: '+e.message,true);
   }
 }
 
 function redoInterview(id){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.ivwResult=null;
-  renderDetail(c);
+  c.ivwResult=null;renderDetail(c);
 }
 
-// INTERVIEW (legacy question-by-question - kept for compatibility)
-function buildIvwQ(c,q,i){
-  const answer=c.ivwAnswers?.[i]||'';
-  const evalR=c.ivwEvals?.[i];
-  const ratingC={buena:'var(--pass)',regular:'var(--warn)',mala:'var(--fail)'};
-  return`<div class="ivw-q" id="ivwq-${c.id}-${i}">
-    <div class="ivw-q-header"><span class="ivw-q-num">${i+1}</span><div class="ivw-q-text">${esc(q)}</div></div>
-    <div class="ivw-q-body">
-      <textarea class="ivw-answer-input" id="ivwinp-${c.id}-${i}" placeholder="Escribe lo que respondió el candidato..." rows="3" oninput="onIvwInput('${c.id}',${i},this.value)">${esc(answer)}</textarea>
-      ${evalR
-        ?`<div class="ivw-eval-result"><div class="eval-label" style="color:${ratingC[evalR.rating]||'var(--ink-50)'}">● ${(evalR.rating||'').toUpperCase()}</div><div>${esc(evalR.evaluation)}</div>${evalR.followup?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--purple-ring);font-size:11px;color:var(--purple)"><strong>Seguimiento:</strong> ${esc(evalR.followup)}</div>`:''}</div>`
-        :`<button class="ivw-eval-btn" id="ivwebtn-${c.id}-${i}" onclick="evalAnswer('${c.id}',${i})" ${!answer?'disabled':''}>
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1.5l1 2.6 2.7.39-1.95 1.9.46 2.71L5.5 7.85l-2.21 1.25.46-2.71-1.95-1.9 2.7-.39z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
-            Evaluar respuesta
-          </button>`
-      }
-    </div>
-  </div>`;
-}
 
-function ivwSumHtml(s){
-  if(typeof s==='string')return`<div class="sum-label">Evaluación</div><div>${esc(s)}</div>`;
-  const rc={Contratar:'var(--pass)',Considerar:'var(--warn)',Rechazar:'var(--fail)'}[s.overall_rating]||'var(--ink-50)';
-  return`<div class="sum-label" style="color:${rc}">● ${s.overall_rating||'EVALUACIÓN'}</div><div style="font-weight:700;color:var(--ink);margin-bottom:5px">${esc(s.key_finding||'')}</div><div style="margin-bottom:6px">${esc(s.summary||'')}</div><div style="padding-top:6px;border-top:1px solid var(--purple-ring);font-size:11px;color:var(--purple)"><strong>Recomendación:</strong> ${esc(s.recommendation||'')}</div>`;
-}
-
-function onIvwInput(id,idx,val){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  if(!c.ivwAnswers)c.ivwAnswers={};c.ivwAnswers[idx]=val;
-  const btn=document.getElementById(`ivwebtn-${id}-${idx}`);if(btn)btn.disabled=!val.trim();
-  const sumBtn=document.getElementById(`ivwsumbtn-${id}`);
-  if(sumBtn)sumBtn.disabled=Object.keys(c.ivwAnswers).filter(k=>c.ivwAnswers[k]?.trim()).length<2;
-}
-
-async function evalAnswer(id,idx){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  const inp=document.getElementById(`ivwinp-${id}-${idx}`);
-  const answer=inp?.value||c.ivwAnswers?.[idx]||'';
-  if(!answer.trim()){showToast('Escribe la respuesta primero',true);return;}
-  if(!c.ivwAnswers)c.ivwAnswers={};c.ivwAnswers[idx]=answer;
-  const btn=document.getElementById(`ivwebtn-${id}-${idx}`);
-  if(btn){btn.disabled=true;btn.innerHTML='<div class="ivw-spin"></div>Evaluando...';}
-  try{
-    const res=await callClaude(buildEvalPrompt(c.qs[idx],answer,c.name,c.vacTitle));
-    if(!c.ivwEvals)c.ivwEvals={};c.ivwEvals[idx]=res;
-    await updCand(c,{interview_answers:c.ivwAnswers,interview_evals:c.ivwEvals});
-    updateGuide();
-    const qBlock=document.getElementById(`ivwq-${id}-${idx}`);
-    if(qBlock){qBlock.outerHTML=buildIvwQ(c,c.qs[idx],idx);}
-    const newInp=document.getElementById(`ivwinp-${id}-${idx}`);
-    if(newInp)newInp.addEventListener('input',e=>onIvwInput(id,idx,e.target.value));
-    showToast('Respuesta evaluada ✓');
-  }catch(e){
-    if(btn){btn.disabled=false;btn.innerHTML='<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1.5l1 2.6 2.7.39-1.95 1.9.46 2.71L5.5 7.85l-2.21 1.25.46-2.71-1.95-1.9 2.7-.39z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>Evaluar respuesta';}
-    showToast('Error: '+e.message,true);
-  }
-}
-
-async function genSum(id){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  const btn=document.getElementById(`ivwsumbtn-${id}`);
-  if(btn){btn.disabled=true;btn.innerHTML='<div class="proc-spinner" style="border-top-color:#fff"></div>Evaluando...';}
-  try{
-    const answers=c.qs.map((_,i)=>c.ivwAnswers?.[i]||'');
-    const res=await callClaude(buildSumPrompt(c,answers));
-    c.ivwSummary=res;
-    await updCand(c,{interview_summary:res,interview_answers:c.ivwAnswers});
-    if(btn){const wrap=btn.parentNode;btn.remove();const div=document.createElement('div');div.className='ivw-summary';div.innerHTML=ivwSumHtml(res);wrap.appendChild(div);}
-    showToast('Evaluación completa ✓');
-  }catch(e){
-    if(btn){btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5l1 2.6 2.7.39-1.95 1.9.46 2.71L6.5 7.85l-2.21 1.25.46-2.71-1.95-1.9 2.7-.39z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="currentColor"/></svg>Evaluar entrevista completa';}
-    showToast('Error: '+e.message,true);
-  }
-}
-
-// FEEDBACK
-const sLabels=['','Muy malo','Regular','Bueno','Muy bueno','Excelente'];
-function fbHtml(c){
-  // Show saved view if feedback is complete (has stars and outcome)
-  if(c.fbOutcome&&!c._editFb){
-    const outcomeColors={
-      'Contratado':'green','Guardado para futuro':'blue',
-      'No avanzó':'red'
-    };
-    const oc=outcomeColors[c.fbOutcome]||'gray';
-    const ocStyle={
-      green:'background:var(--pass-bg);color:var(--pass);border:1px solid var(--pass-ring)',
-      blue:'background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-ring)',
-      red:'background:var(--fail-bg);color:var(--fail);border:1px solid var(--fail-ring)',
-      gray:'background:var(--ink-05);color:var(--ink-50);border:1px solid var(--ink-10)'
-    }[oc];
-    return `<div style="display:flex;flex-direction:column;gap:10px;padding:13px">
-      <div style="background:var(--ink-05);border:1px solid var(--ink-10);border-radius:12px;padding:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-30)">Calificación</div>
-          <div style="display:flex;gap:2px">${[1,2,3,4,5].map(n=>`<span style="font-size:18px;color:${n<=(c.fbStars||0)?'var(--gold)':'var(--ink-10)'}">★</span>`).join('')}</div>
-        </div>
-        <div style="display:inline-block;padding:5px 14px;border-radius:99px;font-size:12px;font-weight:600;${ocStyle}">${esc(c.fbOutcome)}</div>
-        ${c.fbDeclineReason?`<div style="margin-top:8px;font-size:11px;color:var(--ink-50);font-style:italic">Razón: ${esc(c.fbDeclineReason)}</div>`:''}
-        ${c.fbComment?`<div style="margin-top:8px;font-size:12px;color:var(--ink-80);line-height:1.6;padding-top:8px;border-top:1px solid var(--ink-10)">${esc(c.fbComment)}</div>`:''}
-      </div>
-      <button class="btn-redo-ivw" onclick="editFb('${c.id}')">Editar feedback</button>
-    </div>`;
-  }
-
-  // Edit/new form
-  const outcomes=[
-    {l:'Contratado',icon:'✅',cls:'green'},
-    {l:'Guardado para futuro',icon:'🔄',cls:'blue'},
-    {l:'No avanzó',icon:'❌',cls:'red'}
-  ];
-  const declineReasons=[
-    'No pasó la entrevista',
-    'Expectativa salarial alta',
-    'Ya tenía otra oferta',
-    'Vacante cerrada',
-    'No disponible',
-    'Otro motivo'
-  ];
-  const showDecline=c.fbOutcome==='No avanzó';
-  return `<div style="display:flex;flex-direction:column;gap:12px;padding:13px">
-
-    <!-- Stars -->
-    <div style="background:#fffdf0;border:0.5px solid #f0e0a0;border-radius:12px;padding:16px;text-align:center">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:10px">Califica al candidato</div>
-      <div class="stars-row" id="stars-${c.id}">
-        ${[1,2,3,4,5].map(n=>`<button class="star-btn${n<=(c.fbStars||0)?' active':''}" onclick="setStar('${c.id}',${n})">★</button>`).join('')}
-      </div>
-      <div class="star-label" id="slbl-${c.id}" style="display:block;margin:0">${sLabels[c.fbStars||0]||'Toca una estrella para calificar'}</div>
-    </div>
-
-    <!-- Outcome -->
-    <div style="border:1px solid var(--ink-10);border-radius:12px;padding:13px">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:10px">¿Cómo terminó el proceso?</div>
-      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
-        ${outcomes.map(o=>`
-          <button onclick="setOutcome('${c.id}','${o.l}')" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:9px;border:1.5px solid ${c.fbOutcome===o.l?'var(--blue)':'var(--ink-10)'};background:${c.fbOutcome===o.l?'var(--blue-dim)':'transparent'};cursor:pointer;font-family:var(--f);text-align:left;transition:all .15s">
-            <span style="font-size:16px">${o.icon}</span>
-            <span style="font-size:12px;font-weight:600;color:${c.fbOutcome===o.l?'var(--blue)':'var(--ink-80)'}">${o.l}</span>
-          </button>`).join('')}
-      </div>
-
-      <!-- Decline reason (only shown when No avanzó) -->
-      <div id="decline-wrap-${c.id}" style="display:${showDecline?'block':'none'};margin-bottom:12px">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:8px">¿Por qué razón?</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px">
-          ${declineReasons.map(r=>`<button onclick="setDeclineReason('${c.id}','${r}')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;border:1.5px solid ${c.fbDeclineReason===r?'var(--fail-ring)':'var(--ink-10)'};background:${c.fbDeclineReason===r?'var(--fail-bg)':'transparent'};color:${c.fbDeclineReason===r?'var(--fail)':'var(--ink-50)'};cursor:pointer;font-family:var(--f);transition:all .15s">${r}</button>`).join('')}
-        </div>
-      </div>
-
-      <!-- Notes -->
-      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:7px">Notas adicionales <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-30)">(Romi aprende de esto)</span></div>
-      <textarea class="fb-textarea" id="fbtxt-${c.id}" placeholder="Ej: Excelente candidato pero solo tenemos un espacio. Reactivar en 3 meses. Expectativa salarial alineada. Muy buena actitud durante todo el proceso...">${esc(c.fbComment||'')}</textarea>
-      <button class="btn-save-fb" id="fbsave-${c.id}" onclick="saveFb('${c.id}')" ${!c.fbStars||!c.fbOutcome?'disabled':''}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Guardar feedback
-      </button>
-    </div>
-  </div>`;
-}
-function setStar(id,n){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.fbStars=n;
-  document.querySelectorAll('#stars-'+id+' .star-btn').forEach((b,i)=>b.classList.toggle('active',i<n));
-  const l=document.getElementById('slbl-'+id);if(l)l.textContent=sLabels[n];
-  checkFbReady(id);
-}
-function checkFbReady(id){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  const sv=document.getElementById('fbsave-'+id);
-  if(sv)sv.disabled=!(c.fbStars>0&&c.fbOutcome);
-}
-function setOutcome(id,outcome){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.fbOutcome=outcome;
-  // Re-render feedback body to show/hide decline reasons
-  const body=document.getElementById('fbbody-'+id);
-  if(body)body.innerHTML=fbHtml(c);
-}
-function setDeclineReason(id,reason){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.fbDeclineReason=reason;
-  // Re-render to update selection
-  const body=document.getElementById('fbbody-'+id);
-  if(body)body.innerHTML=fbHtml(c);
-}
-function setFbS(id,status,cls){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.fbStatus=status;
-  if(status==='Contratado'){c.tier='pass';updCand(c,{tier:'pass'});renderCands();updateStats();showToast(c.name+' → Contratado ✓');}
-}
-async function saveFb(id){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.fbComment=document.getElementById('fbtxt-'+id)?.value||'';
-  c._editFb=false;
-  // Auto-set tier based on outcome
-  if(c.fbOutcome==='Contratado'){c.tier='pass';}
-  else if(c.fbOutcome==='No avanzó'){c.tier='fail';}
-  else if(c.fbOutcome==='Guardado para futuro'){c.inPipeline=true;}
-  await updCand(c,{
-    fb_stars:c.fbStars,
-    fb_status:c.fbOutcome||c.fbStatus||'',
-    fb_comment:c.fbComment,
-    fb_outcome:c.fbOutcome||'',
-    fb_decline_reason:c.fbDeclineReason||'',
-    tier:c.tier,
-    in_pipeline:c.inPipeline||false
-  });
-  // If guardado para futuro, add to pipeline
-  if(c.fbOutcome==='Guardado para futuro'&&!X.pipeline.find(p=>p.id===id)){
-    c.savedAt=new Date().toISOString();
-    await updCand(c,{in_pipeline:true,saved_at:c.savedAt});
-    X.pipeline.unshift(c);updatePipeBadge();
-  }
-  const body=document.getElementById('fbbody-'+id);if(body)body.innerHTML=fbHtml(c);
-  renderCands();updateStats();updateGuide();
-  showToast('Feedback guardado ✓');
-}
-function editFb(id){const c=X.cands.find(x=>x.id===id);if(!c)return;c._editFb=true;const body=document.getElementById('fbbody-'+id);if(body)body.innerHTML=fbHtml(c);}
-
-// CV TOGGLE
-function toggleCv(id){
-  const body=document.getElementById('cvbody-'+id),btn=document.getElementById('cvtog-'+id);
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  if(body.classList.contains('expanded')){body.classList.remove('expanded');body.textContent=c.cvText?.substring(0,500)+(c.cvText?.length>500?'\n...':'');btn.textContent='Ver más';}
-  else{body.classList.add('expanded');body.textContent=c.cvText||'No disponible';btn.textContent='Ver menos';}
-}
-
-// WA
-async function setStage(id, newStage){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.stage=newStage;
-  if(newStage==='contacted'||newStage==='interview'||newStage==='feedback')c.contacted=true;
-  await updCand(c,{stage:newStage,contacted:c.contacted});
-  // Re-render detail panel (stage affects which tab is default)
-  renderDetail(c);
-  renderCands();updateStats();updateGuide();
-}
-
-function markContacted(id){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.contacted=true;
-  if(c.tier!=='pass'){c.tier='pass';updCand(c,{tier:'pass',contacted:true});}else{updCand(c,{contacted:true});}
-  renderCands();updateStats();updateGuide();
-  // Update tab dot on Contactar tab
-  const bar=document.getElementById('tabbar-'+id);
-  if(bar){const btns=bar.querySelectorAll('.tab-btn');if(btns[1])btns[1].classList.add('done');}
-  showToast('WhatsApp abierto · candidato en Pasa ✓');
-}
-
-function renderIdle(){
-  const old=document.getElementById('rp-det');if(old)old.remove();
-  document.getElementById('rp-idle').classList.remove('hidden');
-  document.getElementById('chk-items').innerHTML='<div class="chk-item"><div class="chk-check"></div>Selecciona un candidato para comenzar</div>';
-}
-
-// PIPELINE
-async function addPipe(id){
-  const c=X.cands.find(x=>x.id===id);if(!c)return;
-  c.inPipeline=true;c.savedAt=new Date().toISOString();
-  await updCand(c,{in_pipeline:true,saved_at:c.savedAt});
-  if(!X.pipeline.find(p=>p.id===id))X.pipeline.unshift(c);
-  updatePipeBadge();renderPipe();showToast(esc(c.name)+' → pipeline ✓');
-}
-function updatePipeBadge(){document.getElementById('nb2').textContent=X.pipeline.length;}
-function renderPipe(){
-  const list=document.getElementById('pl');list.querySelectorAll('.prow').forEach(r=>r.remove());
-  document.getElementById('pe').style.display=X.pipeline.length?'none':'';
-  const sc={pass:'var(--pass)',review:'var(--warn)',fail:'var(--fail)'};
-  X.pipeline.forEach(c=>{
-    const d=document.createElement('div');d.className='prow';
-    const ini=c.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
-    const isRed=c.vacTitle&&c.vacTitle!==X.vac?.t;
-    d.innerHTML=`<div class="prow-av">${ini}</div><div class="prow-info"><div class="prow-name">${esc(c.name)} ${isRed?'<span class="rebadge">♻ Coincide</span>':''}</div><div class="prow-meta">${esc(c.role||'')} · ${esc(c.vacTitle||'Sin vacante')} · ${fd(c.savedAt||c.analyzedAt)}</div></div><div class="prow-right"><div class="prow-score" style="color:${sc[c.tier]||'var(--ink-30)'}">${c.score}</div><button class="prow-move" onclick="openMoveModal('${c.id}')">→ Mover</button><button class="prow-remove" onclick="removeFromPipe('${c.id}')" title="Quitar">✕</button></div>`;
-    list.appendChild(d);
-  });
-}
-function openMoveModal(candId){
-  X.movingId=candId;
-  const c=X.pipeline.find(x=>x.id===candId);
-  document.getElementById('m-move-sub').textContent=c?`Mover a ${c.name} a otra vacante`:'Elige la vacante destino';
-  const list=document.getElementById('m-move-list');
-  const others=X.allVacs.filter(v=>v.id!==X.vac?.dbId);
-  list.innerHTML=others.length
-    ?others.map(v=>`<div class="mvac-item" onclick="moveTo('${candId}','${v.id}','${esc(v.title)}')"><div class="mvac-item-name">${esc(v.title)}</div><div class="mvac-item-meta">${esc(v.company||'')}${v.location?' · '+esc(v.location):''}</div></div>`).join('')
-    :'<p style="font-size:12px;color:var(--ink-50);text-align:center;padding:20px">No hay otras vacantes creadas aún.</p>';
-  openModal('m-move');
-}
-async function moveTo(candId,vacId,vacTitle){
-  const c=X.pipeline.find(x=>x.id===candId);
-  if(c){c.vacTitle=vacTitle;c.inPipeline=false;await updCand(c,{vacancy_title:vacTitle,in_pipeline:false});X.pipeline=X.pipeline.filter(x=>x.id!==candId);updatePipeBadge();renderPipe();}
-  closeModal('m-move');showToast(`Movido a "${vacTitle}" ✓`);
-}
-async function removeFromPipe(candId){
-  const c=X.pipeline.find(x=>x.id===candId);
-  if(c){c.inPipeline=false;await updCand(c,{in_pipeline:false});}
-  X.pipeline=X.pipeline.filter(x=>x.id!==candId);updatePipeBadge();renderPipe();showToast('Quitado del pipeline');
-}
-const fd=iso=>iso?new Date(iso).toLocaleDateString('es-MX',{day:'numeric',month:'short'}):'';
-
-// VIEW
-function setView(v,btn){
-  X.view=v;document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
-  const tv=document.getElementById('tv'),pv=document.getElementById('pv'),fr=document.getElementById('frow'),st=document.getElementById('steps'),gt=document.getElementById('guide');
-  if(v==='triage'){tv.classList.remove('hidden');pv.classList.add('hidden');fr.style.display='';st.style.display='';gt.style.display='';document.getElementById('ct-t').textContent='Triaje de CVs';renderCands();}
-  else{tv.classList.add('hidden');pv.classList.remove('hidden');fr.style.display='none';st.style.display='none';gt.style.display='none';document.getElementById('ct-t').textContent='Pipeline de talento';document.getElementById('ct-s').textContent='Candidatos guardados';renderPipe();}
-}
-
-// UTILS
-const cleanPhone=p=>{const c=p.replace(/\D/g,'');return c.startsWith('52')?c:'52'+c;};
-function et(t){try{return btoa(unescape(encodeURIComponent(t||'')));}catch{return '';}}
-function dt(b){try{return decodeURIComponent(escape(atob(b)));}catch{return '';}}
-function cpText(btn,enc){const t=dt(enc);navigator.clipboard.writeText(t).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});btn.textContent='✓ Copiado';btn.classList.add('ok');setTimeout(()=>{btn.textContent='Copiar';btn.classList.remove('ok');},2000);showToast('Copiado');}
-function cpRaw(enc){const t=dt(enc);navigator.clipboard.writeText(t).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});showToast('WhatsApp copiado ✓');}
-function expCSV(id){const c=X.cands.find(x=>x.id===id);if(!c)return;const rows=[['Nombre','Puesto','Exp.','Ubicación','Teléfono','Score','Nivel','Razón','Fortalezas','Riesgos','Rec.','Stars','Status','Feedback'],[c.name,c.role,c.exp,c.loc,c.phone||'',c.score,c.tier,c.oneLiner,(c.strengths||[]).join(' | '),(c.risks||[]).join(' | '),c.rec,c.fbStars||0,c.fbStatus||'',c.fbComment||'']];const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));a.download=`romi_${c.name.replace(/\s+/g,'_')}.csv`;a.click();showToast('CSV exportado');}
-const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-function chk(){if(!S.key()){openModal('m-cfg');showToast('Agrega tu API key primero',true);return false;}if(!X.vac){showToast('Selecciona una vacante primero',true);return false;}return true;}
-function saveCfg(){const k=document.getElementById('ck').value.trim();if(k)S.setKey(k);S.setModel(document.getElementById('cm').value);updateKeyLed();closeModal('m-cfg');showToast('Guardado ✓');}
-function updateKeyLed(){document.getElementById('kled').className='kled '+(S.key()?'ok':'no');}
-let tt;
-function showToast(msg,isErr=false){const t=document.getElementById('toast'),m=document.getElementById('tmsg'),dot=document.getElementById('tdot');m.textContent=msg;dot.className='tdot '+(isErr?'err':'');t.classList.remove('off');clearTimeout(tt);tt=setTimeout(()=>t.classList.add('off'),isErr?4500:2800);}
 init();
 </script>
 </body>
