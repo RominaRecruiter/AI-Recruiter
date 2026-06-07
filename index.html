@@ -948,7 +948,13 @@ function renderDetail(c){
   // Decide which tab is active based on stage
   const activeTab = stage==='interview'||stage==='feedback'?'interview':'perfil';
   // If feedback already done, default to feedback tab
-  const startTab = c.fbStars>0&&stage==='feedback'?'feedback':stage==='interview'?'interview':'perfil';
+  // Determine which tab to open by default based on candidate state
+  const startTab = c.fbStars>0&&c.fbOutcome?'feedback'
+    : c.ivwResult?'interview'
+    : c.ivwNotes&&c.ivwNotes.trim()?'interview'
+    : stage==='interview'||stage==='feedback'?'interview'
+    : c.contacted?'contactar'
+    : 'perfil';
 
   const det=document.createElement('div');
   det.id='rp-det';
@@ -991,7 +997,7 @@ function renderDetail(c){
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1C3.69 1 1 3.69 1 7c0 1.06.28 2.06.77 2.92L1 13l3.08-.77A6 6 0 107 1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5 5.5c0-.28.22-.5.5-.5h3c.28 0 .5.22.5.5v2c0 .28-.22.5-.5.5H7.5L6 9.5V8H5.5a.5.5 0 01-.5-.5v-2z" stroke="currentColor" stroke-width="1.1"/></svg>
       Contactar
     </button>
-    <button class="tab-btn${startTab==='interview'?' on':c.ivwResult?' done':''}" onclick="switchTab('${c.id}','interview')">
+    <button class="tab-btn${startTab==='interview'?' on':(c.ivwResult||c.ivwNotes)?' done':''}" onclick="switchTab('${c.id}','interview')">
       <div class="tab-dot"></div>
       <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M2 2h8a1 1 0 011 1v5a1 1 0 01-1 1H4L2 11V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M4 5h4M4 7h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
       Entrevista
