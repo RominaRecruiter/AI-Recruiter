@@ -152,7 +152,7 @@ body{font-family:var(--f);background:var(--white);color:var(--ink);font-size:13p
 .proc-track{width:70px;height:2px;background:var(--ink-10);border-radius:99px;overflow:hidden;flex-shrink:0}
 .proc-fill{height:100%;background:var(--blue);animation:loading 1.6s ease-in-out infinite alternate}
 @keyframes loading{from{width:8%}to{width:90%}}
-.rpanel{background:var(--white);border-left:1px solid var(--ink-10);display:flex;flex-direction:column;overflow:hidden}
+.rpanel{background:var(--white);border-left:1px solid var(--ink-10);display:flex;flex-direction:column;overflow:hidden;min-height:0}
 .checklist-hd{background:var(--ink);padding:11px 15px;flex-shrink:0}
 .chk-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:7px}
 .chk-items{display:flex;flex-direction:column;gap:3px}
@@ -353,8 +353,9 @@ body{font-family:var(--f);background:var(--white);color:var(--ink);font-size:13p
 .tab-btn.on svg{transform:scale(1.1)}
 
 /* Tab panels */
-.tab-panel{display:none;flex:1;overflow-y:auto;padding:14px 16px;flex-direction:column;gap:10px}
+.tab-panel{display:none;flex:1;overflow-y:auto;padding:14px 16px;flex-direction:column;gap:10px;min-height:0}
 .tab-panel.on{display:flex}
+.tab-panel.on > *{flex-shrink:0}
 
 /* Interview notes */
 .ivw-notes-ta{width:100%;min-height:180px;background:var(--ink-05);border:1.5px solid var(--ink-10);border-radius:10px;color:var(--ink);font-size:13px;font-weight:400;font-family:var(--f);padding:12px 14px;outline:none;resize:vertical;line-height:1.7;transition:all .15s}
@@ -958,7 +959,7 @@ function renderDetail(c){
 
   const det=document.createElement('div');
   det.id='rp-det';
-  det.style.cssText='display:flex;flex-direction:column;flex:1;overflow:hidden';
+  det.style.cssText='display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0';
 
   det.innerHTML=`
   <!-- Hero always visible -->
@@ -1050,32 +1051,37 @@ function renderDetail(c){
   <!-- TAB: ENTREVISTA -->
   <div class="tab-panel${startTab==='interview'?' on':''}" id="tab-interview-${c.id}">
     ${c.ivwResult ? renderIvwResult(c) : `
-
-    <!-- Rompe-hielo -->
-    <div style="background:var(--white);border:1px solid var(--ink-10);border-radius:13px;overflow:hidden">
-      <div style="padding:9px 13px;background:var(--blue-dim);border-bottom:1px solid var(--blue-ring);display:flex;align-items:center;gap:7px">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="color:var(--blue)"><path d="M6.5 1a5.5 5.5 0 100 11A5.5 5.5 0 006.5 1z" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 5c0-1.1.9-2 2-2s2 .9 2 2c0 .8-.5 1.5-1.2 1.8V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6.5" cy="9.5" r=".7" fill="currentColor"/></svg>
-        <span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue)">Rompe-hielo</span>
-      </div>
-      <div style="padding:11px 13px" id="ice-wrap-${c.id}">${renderIcebreakerHtml(c)}</div>
+    <div style="background:var(--blue-dim);border:1.5px solid var(--blue-ring);border-radius:13px;padding:14px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin-bottom:10px">💬 Rompe-hielo con ${esc(c.name.split(' ')[0])}</div>
+      <div id="ice-wrap-${c.id}">${renderIcebreakerHtml(c)}</div>
     </div>
 
-    <!-- Preguntas de guía -->
-    <div style="background:var(--purple-bg);border:1px solid var(--purple-ring);border-radius:13px;padding:13px">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);margin-bottom:9px">Preguntas de guía</div>
-      ${c.qs.map((q,i)=>`<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid rgba(107,63,160,.12);font-size:12px;font-weight:500;color:var(--ink-80);line-height:1.5"><span style="min-width:20px;height:20px;border-radius:50%;background:var(--purple);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${i+1}</span>${esc(q)}</div>`).join('')}
+    <div style="background:var(--purple-bg);border:1.5px solid var(--purple-ring);border-radius:13px;padding:14px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--purple);margin-bottom:10px">Preguntas de guía</div>
+      ${c.qs.map((q,i)=>`
+        <div style="display:flex;gap:9px;padding:8px 0;border-bottom:1px solid rgba(107,63,160,.12);align-items:flex-start">
+          <span style="min-width:20px;height:20px;border-radius:50%;background:var(--purple);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${i+1}</span>
+          <span style="font-size:12px;font-weight:500;color:var(--ink-80);line-height:1.5">${esc(q)}</span>
+        </div>`).join('')}
     </div>
 
-    <!-- Notas -->
-    <div style="border:1px solid var(--ink-10);border-radius:13px;overflow:hidden">
-      <div style="padding:9px 13px;background:var(--ink-05);border-bottom:1px solid var(--ink-10);font-size:11px;font-weight:600;color:var(--ink-50);display:flex;align-items:center;gap:6px">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2h8a1 1 0 011 1v5a1 1 0 01-1 1H4L2 11V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+    <div style="background:var(--white);border:1.5px solid var(--ink-10);border-radius:13px;overflow:hidden">
+      <div style="padding:10px 14px;background:var(--ink-05);border-bottom:1px solid var(--ink-10);font-size:11px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:7px">
+        <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M2 2h8a1 1 0 011 1v5a1 1 0 01-1 1H4L2 11V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M4 5h4M4 7h2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
         Tus notas de la entrevista
       </div>
-      <div style="padding:11px 13px">
-        <textarea class="ivw-notes-ta" id="ivwnotes-${c.id}" placeholder="Escribe libremente: qué te gustó, cómo respondió a los riesgos, expectativas salariales, disponibilidad..." rows="7">${esc(c.ivwNotes||'')}</textarea>
-        <button class="btn-analyze-ivw" id="ivwanalyzebtn-${c.id}" onclick="analyzeInterview('${c.id}')">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l1.2 3.1 3.3.48-2.4 2.33.57 3.3L7 9.1l-2.67 1.61.57-3.3L2.5 5.08l3.3-.48z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor"/></svg>
+      <div style="padding:13px">
+        <textarea id="ivwnotes-${c.id}"
+          style="width:100%;min-height:180px;background:var(--ink-05);border:1.5px solid var(--ink-10);border-radius:9px;padding:12px 13px;font-size:13px;font-family:var(--f);color:var(--ink);line-height:1.7;resize:vertical;outline:none;box-sizing:border-box;display:block"
+          placeholder="Escribe libremente lo que observaste: actitud, cómo respondió los riesgos, expectativa salarial, disponibilidad, cualquier cosa relevante..."
+          oninput="this.style.borderColor='var(--purple)'"
+          onfocus="this.style.borderColor='var(--purple)';this.style.background='#fff'"
+          onblur="this.style.borderColor='var(--ink-10)'"
+        >${esc(c.ivwNotes||'')}</textarea>
+        <button
+          onclick="analyzeInterview('${c.id}')"
+          style="margin-top:10px;width:100%;height:44px;border-radius:10px;background:var(--purple);color:#fff;font-size:13px;font-weight:700;font-family:var(--f);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l1.2 3.1 3.3.48-2.4 2.33.57 3.3L7 9.1l-2.67 1.61.57-3.3L2.5 5.08l3.3-.48z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor"/></svg>
           Analizar con Romi
         </button>
       </div>
