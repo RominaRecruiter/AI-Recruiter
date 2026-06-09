@@ -1271,16 +1271,16 @@ function fbHtml(c){
     <div style="border:1px solid var(--ink-10);border-radius:12px;padding:13px">
       <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:10px">¿Cómo terminó el proceso?</div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
-        ${outcomes.map(o=>`<button onclick="setOutcome('${c.id}','${o.l}')" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:9px;border:1.5px solid ${c.fbOutcome===o.l?'var(--blue)':'var(--ink-10)'};background:${c.fbOutcome===o.l?'var(--blue-dim)':'transparent'};cursor:pointer;font-family:var(--f);text-align:left;transition:all .15s"><span style="font-size:16px">${o.icon}</span><span style="font-size:12px;font-weight:600;color:${c.fbOutcome===o.l?'var(--blue)':'var(--ink-80)'}">${o.l}</span></button>`).join('')}
+        ${outcomes.map(o=>`<button data-outcome-id="${c.id}" data-outcome-val="${o.l}" onclick="setOutcome('${c.id}','${o.l}')" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:9px;border:1.5px solid ${c.fbOutcome===o.l?'var(--blue)':'var(--ink-10)'};background:${c.fbOutcome===o.l?'var(--blue-dim)':'transparent'};cursor:pointer;font-family:var(--f);text-align:left;transition:all .15s"><span style="font-size:16px">${o.icon}</span><span style="font-size:12px;font-weight:600;color:${c.fbOutcome===o.l?'var(--blue)':'var(--ink-80)'}">${o.l}</span></button>`).join('')}
       </div>
-      ${showDecline?`<div style="margin-bottom:12px">
+      <div id="decline-wrap-${c.id}" style="display:${showDecline?'block':'none'};margin-bottom:12px">
         <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:8px">¿Por qué razón?</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px">${declineReasons.map(r=>`<button onclick="setDeclineReason('${c.id}','${r}')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;border:1.5px solid ${c.fbDeclineReason===r?'var(--fail-ring)':'var(--ink-10)'};background:${c.fbDeclineReason===r?'var(--fail-bg)':'transparent'};color:${c.fbDeclineReason===r?'var(--fail)':'var(--ink-50)'};cursor:pointer;font-family:var(--f)">${r}</button>`).join('')}</div>
-      </div>`:''}
-      ${showRetention?`<div style="margin-bottom:12px">
+        <div style="display:flex;flex-wrap:wrap;gap:5px">${declineReasons.map(r=>`<button data-decline-id="${c.id}" data-decline-val="${r}" onclick="setDeclineReason('${c.id}','${r}')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;border:1.5px solid ${c.fbDeclineReason===r?'var(--fail-ring)':'var(--ink-10)'};background:${c.fbDeclineReason===r?'var(--fail-bg)':'transparent'};color:${c.fbDeclineReason===r?'var(--fail)':'var(--ink-50)'};cursor:pointer;font-family:var(--f)">${r}</button>`).join('')}</div>
+      </div>
+      <div id="retention-wrap-${c.id}" style="display:${showRetention?'block':'none'};margin-bottom:12px">
         <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:8px">⏱ ¿Cuánto tiempo duró en el puesto?</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px">${['Menos de 1 mes','1-3 meses','3-6 meses','6-12 meses','Más de 1 año'].map(r=>`<button onclick="setRetention('${c.id}','${r}')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;border:1.5px solid ${c.fbRetention===r?'var(--blue-ring)':'var(--ink-10)'};background:${c.fbRetention===r?'var(--blue-dim)':'transparent'};color:${c.fbRetention===r?'var(--blue)':'var(--ink-50)'};cursor:pointer;font-family:var(--f)">${r}</button>`).join('')}</div>
-      </div>`:''}
+        <div style="display:flex;flex-wrap:wrap;gap:5px">${['Menos de 1 mes','1-3 meses','3-6 meses','6-12 meses','Más de 1 año'].map(r=>`<button data-retention-id="${c.id}" data-retention-val="${r}" onclick="setRetention('${c.id}','${r}')" style="font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;border:1.5px solid ${c.fbRetention===r?'var(--blue-ring)':'var(--ink-10)'};background:${c.fbRetention===r?'var(--blue-dim)':'transparent'};color:${c.fbRetention===r?'var(--blue)':'var(--ink-50)'};cursor:pointer;font-family:var(--f)">${r}</button>`).join('')}</div>
+      </div>
       <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-50);margin-bottom:7px">Notas <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-30)">(Romi aprende de esto)</span></div>
       <textarea class="fb-textarea" id="fbtxt-${c.id}" placeholder="Ej: Excelente candidato. Reactivar en 3 meses. Muy buena actitud durante todo el proceso...">${esc(c.fbComment||'')}</textarea>
       <button class="btn-save-fb" id="fbsave-${c.id}" onclick="saveFb('${c.id}')" ${!c.fbStars||!c.fbOutcome?'disabled':''}>
@@ -1306,20 +1306,42 @@ function checkFbReady(id){
 function setOutcome(id,outcome){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   c.fbOutcome=outcome;
-  const body=document.getElementById('fbbody-'+id);
-  if(body)body.innerHTML=fbHtml(c);
+  // Update outcome button styles without re-rendering
+  document.querySelectorAll('[data-outcome-id="'+id+'"]').forEach(btn=>{
+    const isSelected = btn.dataset.outcomeVal === outcome;
+    btn.style.border = '1.5px solid '+(isSelected?'var(--blue)':'var(--ink-10)');
+    btn.style.background = isSelected?'var(--blue-dim)':'transparent';
+    btn.querySelector('span:last-child').style.color = isSelected?'var(--blue)':'var(--ink-80)';
+  });
+  // Show/hide decline reasons
+  const decWrap = document.getElementById('decline-wrap-'+id);
+  if(decWrap) decWrap.style.display = outcome==='No avanzó'?'block':'none';
+  // Show/hide retention
+  const retWrap = document.getElementById('retention-wrap-'+id);
+  if(retWrap) retWrap.style.display = outcome==='Contratado'?'block':'none';
+  // Enable save button if stars also set
+  checkFbReady(id);
 }
 function setDeclineReason(id,reason){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   c.fbDeclineReason=reason;
-  const body=document.getElementById('fbbody-'+id);
-  if(body)body.innerHTML=fbHtml(c);
+  // Update pill styles without re-rendering
+  document.querySelectorAll('[data-decline-id="'+id+'"]').forEach(btn=>{
+    const sel = btn.dataset.declineVal === reason;
+    btn.style.border = '1.5px solid '+(sel?'var(--fail-ring)':'var(--ink-10)');
+    btn.style.background = sel?'var(--fail-bg)':'transparent';
+    btn.style.color = sel?'var(--fail)':'var(--ink-50)';
+  });
 }
 function setRetention(id,val){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
   c.fbRetention=val;
-  const body=document.getElementById('fbbody-'+id);
-  if(body)body.innerHTML=fbHtml(c);
+  document.querySelectorAll('[data-retention-id="'+id+'"]').forEach(btn=>{
+    const sel = btn.dataset.retentionVal === val;
+    btn.style.border = '1.5px solid '+(sel?'var(--blue-ring)':'var(--ink-10)');
+    btn.style.background = sel?'var(--blue-dim)':'transparent';
+    btn.style.color = sel?'var(--blue)':'var(--ink-50)';
+  });
 }
 function setFbS(id,status,cls){
   const c=X.cands.find(x=>x.id===id);if(!c)return;
