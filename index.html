@@ -1257,7 +1257,7 @@ function fbHtml(c){
   const outcomes=[
     {l:'Contratado',icon:'✅'},{l:'Guardado para futuro',icon:'🔄'},{l:'No avanzó',icon:'❌'}
   ];
-  const declineReasons=['No pasó la entrevista','Expectativa salarial alta','Ya tenía otra oferta','Vacante cerrada','No disponible','Otro motivo'];
+  const declineReasons=['No pasó la entrevista','Declinó la oferta','Expectativa salarial alta','Aceptó otra oferta','Se cerró la vacante','No le interesó la vacante','Prefiere home office','Otro motivo'];
   const showDecline=c.fbOutcome==='No avanzó';
   const showRetention=c.fbOutcome==='Contratado';
   return `<div style="display:flex;flex-direction:column;gap:12px;padding:13px">
@@ -1333,7 +1333,28 @@ async function saveFb(id){
   if(c.fbOutcome==='Contratado')c.tier='pass';
   else if(c.fbOutcome==='No avanzó')c.tier='fail';
   else if(c.fbOutcome==='Guardado para futuro')c.inPipeline=true;
-  await updCand(c,{fb_stars:c.fbStars,fb_status:c.fbOutcome||'',fb_comment:c.fbComment,fb_outcome:c.fbOutcome||'',fb_decline_reason:c.fbDeclineReason||'',fb_retention:c.fbRetention||'',tier:c.tier,in_pipeline:c.inPipeline||false});
+  // Try full update first, fall back to safe fields if columns missing
+  try {
+    await updCand(c,{
+      fb_stars:c.fbStars,
+      fb_status:c.fbOutcome||'',
+      fb_comment:c.fbComment,
+      fb_outcome:c.fbOutcome||'',
+      fb_decline_reason:c.fbDeclineReason||'',
+      fb_retention:c.fbRetention||'',
+      tier:c.tier,
+      in_pipeline:c.inPipeline||false
+    });
+  } catch(e) {
+    // Fallback: only use columns that always exist
+    await updCand(c,{
+      fb_stars:c.fbStars,
+      fb_status:c.fbOutcome||'',
+      fb_comment:c.fbComment,
+      tier:c.tier
+    });
+    showToast('Guardado (corre el SQL para activar todas las funciones)',false);
+  }
   if(c.fbOutcome==='Guardado para futuro'&&!X.pipeline.find(p=>p.id===id)){
     c.savedAt=new Date().toISOString();
     await updCand(c,{in_pipeline:true,saved_at:c.savedAt});
